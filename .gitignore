@@ -1,0 +1,17 @@
+# 題庫檔（約 63MB，不適合放進 git）
+*.pcbank
+bank/
+exports/
+
+# 執行期資料：secret.key、資料庫（不可進版控）
+data/
+cache/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# 編輯器 / 系統
+.vscode/
+.idea/
+.DS_Store

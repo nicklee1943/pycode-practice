@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>管理 · PyCode 練習</title>
+<style>
+  :root { --bg: #1a1a1a; --panel: #262626; --panel-2: #303030; --border: #3a3a3a;
+    --text: #e8e8e8; --muted: #9a9a9a; --accent: #ffa116; --ok: #2cbb5d; --bad: #ef4743;
+    --easy: #00b8a3; --medium: #ffc01e; --hard: #ff375f; --code-bg: #1e1e1e; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, "Segoe UI", "Microsoft JhengHei", "PingFang TC", sans-serif; font-size: 14px; }
+  header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  header h1 { font-size: 18px; margin: 0; }
+  header a { color: var(--accent); text-decoration: none; }
+  .spacer { flex: 1; }
+  main { max-width: 1000px; margin: 0 auto; padding: 16px; }
+  section { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-bottom: 16px; }
+  h2 { font-size: 16px; margin: 0 0 12px; }
+  .btn { font: inherit; border: none; border-radius: 6px; padding: 7px 12px; cursor: pointer; background: var(--panel-2); color: var(--text); }
+  .btn.primary { background: var(--accent); color: #1a1a1a; font-weight: 600; }
+  .btn.danger { color: var(--bad); }
+  input[type=text], input[type=password] { font-size: 16px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .muted { color: var(--muted); }
+  .err { color: var(--bad); min-height: 18px; margin-top: 6px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 8px 6px; border-top: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 13px; border-top: none; }
+  tr.sel td { background: rgba(255, 161, 22, .07); }
+  .tag { display: inline-block; font-size: 12px; border-radius: 10px; padding: 1px 8px; background: var(--panel-2); color: var(--muted); }
+  .tag.admin { color: var(--accent); } .tag.off { color: var(--bad); }
+  .Easy { color: var(--easy); } .Medium { color: var(--medium); } .Hard { color: var(--hard); }
+  .solved { color: var(--ok); } .attempted { color: var(--medium); }
+  .link { color: var(--accent); cursor: pointer; background: none; border: none; font: inherit; padding: 0; text-align: left; }
+  pre { background: var(--code-bg); border-radius: 8px; padding: 12px; overflow: auto; font-family: Consolas, Menlo, monospace; font-size: 13px; margin: 8px 0 0; }
+  /* 手機：表格改成卡片 */
+  @media (max-width: 700px) {
+    table.cards thead { display: none; }
+    table.cards tr { display: block; border-top: 1px solid var(--border); padding: 8px 0; }
+    table.cards td { display: block; border: none; padding: 3px 0; }
+    table.cards td[data-label]::before { content: attr(data-label) '：'; color: var(--muted); }
+  }
+</style>
+</head>
+<body>
+<header>
+  <a href="/" target="pycode-practice">🐍 回到練習</a>
+  <h1>⚙ 管理</h1>
+  <span class="spacer"></span>
+  <span id="user-bar"></span>
+</header>
+<main>
+  <section>
+    <h2>新增帳號</h2>
+    <form class="row" id="new-user" autocomplete="off">
+      <input type="text" id="nu-name" placeholder="帳號" autocapitalize="none" required>
+      <input type="password" id="nu-pw" placeholder="密碼（至少 6 個字元）" autocomplete="new-password" required>
+      <label class="row" style="gap:4px"><input type="checkbox" id="nu-admin">管理員</label>
+      <button class="btn primary" type="submit">建立</button>
+    </form>
+    <div class="err" id="nu-err"></div>
+  </section>
+
+  <section>
+    <h2>帳號與進度</h2>
+    <table class="cards">
+      <thead><tr><th>帳號</th><th>完成</th><th>作答中</th><th>最近在寫</th><th>最後上線</th><th></th></tr></thead>
+      <tbody id="users"></tbody>
+    </table>
+  </section>
+
+  <section id="detail" hidden>
+    <h2 id="detail-title"></h2>
+    <table class="cards">
+      <thead><tr><th>題目</th><th>難度</th><th>狀態</th><th>完成時間</th><th>最後修改</th></tr></thead>
+      <tbody id="progress"></tbody>
+    </table>
+    <div id="code-view"></div>
+  </section>
+</main>
+<script src="/static/dialog.js"></script>
+<script src="/static/session.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+let users = [], selected = null;
+
+async function api(url, method = 'GET', body) {
+  const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data;
+}
+
+async function loadUsers() {
+  users = await api('/api/admin/users');
+  const me = PC.me && PC.me.user ? PC.me.user.id : null;
+  $('#users').innerHTML = users.map((u) => `
+    <tr class="${u.id === selected ? 'sel' : ''}">
+      <td data-label="帳號"><button class="link" data-show="${u.id}">${esc(u.username)}</button>
+        ${u.is_admin ? '<span class="tag admin">管理員</span>' : ''}${u.active ? '' : '<span class="tag off">已停用</span>'}</td>
+      <td data-label="完成">${u.solved}</td>
+      <td data-label="作答中">${u.attempted}</td>
+      <td data-label="最近在寫">${u.latest ? `${u.latest.number}. ${esc(u.latest.title)} <span class="muted">${esc(u.latest.time.slice(0, 16))}</span>` : '<span class="muted">—</span>'}</td>
+      <td data-label="最後上線">${esc((u.last_seen || '—').slice(0, 16))}</td>
+      <td class="row">
+        <button class="btn" data-pw="${u.id}">重設密碼</button>
+        ${u.id === me ? '' : `<button class="btn ${u.active ? 'danger' : ''}" data-active="${u.id}">${u.active ? '停用' : '啟用'}</button>
+        <button class="btn" data-admin="${u.id}">${u.is_admin ? '取消管理員' : '設為管理員'}</button>`}
+      </td>
+    </tr>`).join('');
+  document.querySelectorAll('[data-show]').forEach((b) => (b.onclick = () => showUser(+b.dataset.show)));
+  document.querySelectorAll('[data-pw]').forEach((b) => (b.onclick = () => resetPw(+b.dataset.pw)));
+  document.querySelectorAll('[data-active]').forEach((b) => (b.onclick = () => toggle(+b.dataset.active, 'active')));
+  document.querySelectorAll('[data-admin]').forEach((b) => (b.onclick = () => toggle(+b.dataset.admin, 'is_admin')));
+}
+
+const byId = (id) => users.find((u) => u.id === id);
+
+async function resetPw(id) {
+  const pw = await askText(`替「${byId(id).username}」設定新密碼（至少 6 個字元）：`, { title: '重設密碼', type: 'password' });
+  if (pw == null) return;
+  try { await api(`/api/admin/users/${id}`, 'POST', { password: pw }); await askChoice('密碼已更新。', { title: '完成' }); }
+  catch (e) { await askChoice(e.message, { title: '無法重設密碼' }); }
+}
+
+async function toggle(id, field) {
+  const u = byId(id);
+  const next = !u[field];
+  const what = field === 'active' ? (next ? '啟用' : '停用') : (next ? '設為管理員' : '取消管理員');
+  if (!(await askConfirm(`確定要把「${u.username}」${what}嗎？${field === 'active' && !next ? '\n停用後這個帳號會立刻被登出，資料會保留。' : ''}`, { title: what, danger: field === 'active' && !next }))) return;
+  try { await api(`/api/admin/users/${id}`, 'POST', { [field]: next }); await loadUsers(); }
+  catch (e) { await askChoice(e.message, { title: '無法變更' }); }
+}
+
+async function showUser(id) {
+  selected = id;
+  await loadUsers();
+  const u = byId(id);
+  const rows = await api(`/api/admin/users/${id}/progress`);
+  $('#detail').hidden = false;
+  $('#detail-title').textContent = `${u.username} 的進度（完成 ${u.solved} 題、作答中 ${u.attempted} 題）`;
+  $('#code-view').innerHTML = '';
+  $('#progress').innerHTML = rows.map((r) => `
+    <tr>
+      <td data-label="題目"><button class="link" data-code="${esc(r.id)}">${r.number}. ${esc(r.title)}</button></td>
+      <td data-label="難度" class="${r.difficulty}">${r.difficulty}</td>
+      <td data-label="狀態" class="${r.status}">${r.status === 'solved' ? '已完成' : '作答中'}</td>
+      <td data-label="完成時間">${esc(r.solved_at || '—')}</td>
+      <td data-label="最後修改">${esc((r.updated_at || '—').slice(0, 16))}</td>
+    </tr>`).join('') || '<tr><td colspan="5" class="muted">還沒有任何紀錄</td></tr>';
+  document.querySelectorAll('[data-code]').forEach((b) => (b.onclick = () => showCode(id, b.dataset.code)));
+  $('#detail').scrollIntoView({ behavior: 'smooth' });
+}
+
+async function showCode(uid, pid) {
+  const c = await api(`/api/admin/users/${uid}/code/${encodeURIComponent(pid)}`);
+  $('#code-view').innerHTML = `<h2 style="margin-top:16px">${c.number}. ${esc(c.title)}
+    <span class="muted" style="font-weight:400">${c.solved_at ? '· 最近通過 ' + esc(c.solved_at) : ''}</span></h2>
+    <pre>${esc(c.code ?? '（沒有程式碼）')}</pre>`;
+  $('#code-view').scrollIntoView({ behavior: 'smooth' });
+}
+
+$('#new-user').onsubmit = async (e) => {
+  e.preventDefault();
+  $('#nu-err').textContent = '';
+  try {
+    await api('/api/admin/users', 'POST', { username: $('#nu-name').value, password: $('#nu-pw').value, is_admin: $('#nu-admin').checked });
+    $('#new-user').reset();
+    await loadUsers();
+  } catch (err) { $('#nu-err').textContent = err.message; }
+};
+
+PC.ready.then(loadUsers);
+</script>
+</body>
+</html>

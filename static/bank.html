@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>題庫清單</title>
+<style>
+  :root {
+    --bg: #1a1a1a; --panel: #262626; --panel-2: #303030; --border: #3a3a3a;
+    --text: #e8e8e8; --muted: #9a9a9a; --accent: #ffa116;
+    --easy: #00b8a3; --medium: #ffc01e; --hard: #ff375f; --ok: #2cbb5d; --ds: #7cb7ff; --algo: #6fd39a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, "Segoe UI", "Microsoft JhengHei", "PingFang TC", sans-serif; font-size: 14px; }
+  header { position: sticky; top: 0; z-index: 1; display: flex; flex-direction: column; gap: 10px;
+    padding: 12px 20px; background: var(--panel); border-bottom: 1px solid var(--border); }
+  .hrow { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  #user-bar { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  #user-bar:empty, #bank-file-btns[hidden] { display: none; }
+  #user-bar .user-name { color: var(--muted); }
+  #user-bar .btn { font: inherit; font-size: 13px; cursor: pointer; border: none; border-radius: 14px; padding: 4px 12px; background: var(--panel-2, #303030); color: var(--text); text-decoration: none; }
+  .back-link { font-size: 13px; color: var(--text); background: var(--panel-2); border-radius: 14px;
+    padding: 4px 12px; text-decoration: none; white-space: nowrap; }
+  .back-link:hover { background: #3d3d3d; }
+  .main-top { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 12px; }
+  .main-notes { flex: 1; min-width: 0; }
+  .main-notes .note:last-child { margin-bottom: 0; }
+  @media (max-width: 700px) { .main-top { flex-direction: column-reverse; } }
+  h1 { margin: 0; font-size: 18px; color: var(--accent); }
+  .summary { color: var(--muted); }
+  .summary b { color: var(--text); }
+  .spacer { flex: 1; }
+  .filters { display: flex; gap: 6px; }
+  .filters button { font: inherit; font-size: 13px; cursor: pointer; border: none; border-radius: 14px;
+    padding: 4px 12px; background: var(--panel-2); color: var(--muted); }
+  .filters button.on { background: var(--accent); color: #1a1a1a; font-weight: 600; }
+  #groupby button.on { background: var(--ds); }
+  body.algo section h2 { color: var(--algo); }
+  body.algo #groupby button.on { background: var(--algo); }
+  body.cat section h2 { color: var(--accent); }
+  body.cat #groupby button.on { background: var(--accent); }
+  .bank-pick { color: var(--muted); font-size: 13px; display: flex; align-items: center; gap: 6px; }
+  .bank-file button { color: var(--text); }
+  .bank-file button:hover { background: #3d3d3d; }
+  .bank-source { margin-bottom: 4px; }
+  /* 手動選擇 */
+  #btn-pick.on { background: var(--accent); color: #1a1a1a; font-weight: 600; }
+  .pick-hint { color: var(--accent); font-size: 13px; margin: 0 0 12px; }
+  body.picking .row:not(.cols) { cursor: pointer; }
+  body.picking .row:not(.cols):hover { background: rgba(255,161,22,.06); }
+  .row.picked { background: rgba(255,161,22,.12) !important; box-shadow: inset 3px 0 0 var(--accent); }
+  .pick-badge { display: none; min-width: 20px; height: 20px; margin-right: 8px; border-radius: 10px; font-size: 12px;
+    font-weight: 700; line-height: 20px; text-align: center; vertical-align: 1px; border: 1px solid #555; color: transparent; }
+  body.picking .pick-badge { display: inline-block; }
+  .row.picked .pick-badge { background: var(--accent); border-color: var(--accent); color: #1a1a1a; padding: 0 5px; }
+  #pick-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: flex; align-items: center; gap: 16px;
+    padding: 12px 20px; background: #202020; border-top: 1px solid var(--accent); box-shadow: 0 -6px 20px rgba(0,0,0,.4); }
+  #pick-bar[hidden] { display: none; }
+  .pick-list { flex: 1; min-width: 0; font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pick-list b { color: var(--text); }
+  .pick-actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .pick-actions button { font: inherit; font-size: 14px; cursor: pointer; border: none; border-radius: 6px; padding: 7px 16px;
+    background: #3a3a3a; color: var(--text); }
+  .pick-actions button.primary { background: var(--accent); color: #1a1a1a; font-weight: 600; }
+  body.picking main { padding-bottom: 90px; }
+  .bank-source b { color: var(--text); font-weight: 600; }
+  .bank-pick select { font: inherit; font-size: 13px; color: var(--text); background: var(--panel-2);
+    border: 1px solid var(--border); border-radius: 8px; padding: 4px 8px; cursor: pointer; }
+  main { max-width: 900px; margin: 0 auto; padding: 16px 16px 60px; }
+  .note { color: var(--muted); font-size: 12px; margin: 0 0 12px; }
+  section { margin-bottom: 18px; background: var(--panel); border-radius: 10px; overflow: hidden; }
+  section h2 { display: flex; align-items: center; gap: 10px; margin: 0; padding: 10px 16px; font-size: 15px;
+    background: var(--panel-2); color: var(--ds); }
+  section h2 .count { margin-left: auto; font-size: 12px; font-weight: 400; color: var(--muted); }
+  .bar { height: 4px; background: var(--border); }
+  .bar > div { height: 100%; background: var(--ok); }
+  .row { display: grid; grid-template-columns: 1fr 70px 90px 130px 110px; align-items: center; gap: 8px;
+    padding: 9px 16px; border-top: 1px solid var(--border); }
+  .row:first-of-type { border-top: none; }
+  .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .num { color: var(--muted); margin-right: 4px; }
+  .Easy { color: var(--easy); } .Medium { color: var(--medium); } .Hard { color: var(--hard); }
+  .st { font-size: 12px; }
+  .st.solved { color: var(--ok); font-weight: 600; }
+  .st.attempted { color: var(--accent); }
+  .st.none { color: #666; }
+  .date { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .cols { color: var(--muted); font-size: 12px; padding: 6px 16px; }
+  .cur { font-size: 12px; text-align: right; }
+  .cur a { color: #111; background: var(--accent); padding: 2px 10px; border-radius: 10px; text-decoration: none; font-weight: 600; }
+  .cur a:hover { filter: brightness(1.1); }
+  .empty { padding: 12px 16px; color: var(--muted); }
+  @media (max-width: 560px) {
+    .row { grid-template-columns: 1fr auto; }
+    .row .diff, .row .date:empty, .row .cur:empty, .cols { display: none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <a class="back-link" id="back-link" href="/" target="pycode-practice" title="回到 PyCode 練習頁">🐍 回到練習</a>
+    <h1>📚 題庫清單</h1>
+    <span class="summary" id="summary"></span>
+    <span class="spacer"></span>
+    <div class="filters bank-file" id="bank-file-btns">
+      <button id="btn-bank-export" title="把目前的題庫封裝成一個 .pcbank 檔">📦 匯出題庫</button>
+      <button id="btn-bank-replace" title="選擇一個 .pcbank 題庫檔，取代目前的題庫">🔄 更換題庫</button>
+      <input type="file" id="bank-file-input" accept=".pcbank" hidden>
+    </div>
+    <label class="bank-pick" title="切換題庫會重新抽本次練習的題目">題庫
+      <select id="bank-select"></select>
+    </label>
+    <span id="user-bar"></span>
+  </div>
+  <div class="hrow">
+    <div class="filters" id="filters">
+      <button data-f="all" class="on">全部</button>
+      <button data-f="solved">已完成</button>
+      <button data-f="attempted">作答中</button>
+      <button data-f="none">未做</button>
+    </div>
+    <span class="spacer"></span>
+    <div class="filters bank-file">
+      <button id="btn-pick" title="自己挑選要練習的題目，依點選順序組成題組">✋ 手動選擇</button>
+    </div>
+  </div>
+</header>
+<main>
+  <div class="main-top">
+    <div class="main-notes">
+      <p class="note bank-source" id="bank-source"></p>
+      <p class="note" id="note"></p>
+    </div>
+    <div class="filters" id="groupby" title="分類方式">
+      <button data-g="cat" id="g-cat">依章節</button>
+      <button data-g="ds">依資料結構</button>
+      <button data-g="algo">依演算法</button>
+    </div>
+  </div>
+  <p class="pick-hint" id="pick-hint" hidden>✋ 手動選擇中：點選題目加入題組（數字是點選順序，再點一次取消該題）。</p>
+  <div id="groups">載入中…</div>
+</main>
+<div id="pick-bar" hidden>
+  <div class="pick-list" id="pick-list"></div>
+  <div class="pick-actions">
+    <button id="btn-pick-cancel">取消</button>
+    <button id="btn-pick-compose" class="primary">組成題組</button>
+  </div>
+</div>
+
+<script src="/tags.js"></script>
+<script src="/static/dialog.js"></script>
+<script src="/static/session.js"></script>
+<script>
+// 多人模式：只有管理員能匯出／更換題庫檔
+PC.ready.then(() => { if (PC.me && !PC.me.can_manage_bank) document.getElementById('bank-file-btns').hidden = true; });
+// 與練習頁相同的資料結構分類（顯示順序即此順序）
+const DATA_STRUCTURES = window.TAGS.dataStructures;
+// 與練習頁相同的演算法／解題技巧分類
+const TECHNIQUES = window.TAGS.techniques;
+const GROUPINGS = {
+  ds: { name: '資料結構', short: '資料結構', list: DATA_STRUCTURES },
+  algo: { name: '演算法（解題技巧）', short: '演算法', list: TECHNIQUES },
+};
+const STATUS = { solved: '✓ 已完成', attempted: '✎ 作答中', none: '未做' };
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+let bank = [];
+let data = { problems: [], categories: [] };
+let filter = 'all';
+let groupBy = 'ds';
+try { filter = localStorage.getItem('bankFilter') || 'all'; groupBy = localStorage.getItem('bankGroupBy') || 'ds'; } catch {}
+
+async function load() {
+  try {
+    const [d, b] = await Promise.all([fetch('/api/bank').then((r) => r.json()), fetch('/api/banks').then((r) => r.json())]);
+    data = d;
+    bank = d.problems;
+    const sel = document.getElementById('bank-select');
+    sel.innerHTML = b.banks.map((x) => `<option value="${x.id}">${esc(x.name)}${x.name.includes(`(${x.count})`) ? '' : `（${x.count} 題）`}</option>`).join('');
+    sel.value = b.current;
+    loadBankSource();
+    render();
+  } catch {
+    document.getElementById('groups').innerHTML = '<p class="empty">連不到後端伺服器，請確認 python app.py 仍在執行。</p>';
+  }
+}
+
+function render() {
+  const solved = bank.filter((p) => p.status === 'solved').length;
+  const attempted = bank.filter((p) => p.status === 'attempted').length;
+  document.getElementById('summary').innerHTML =
+    `已完成 <b>${solved}</b> / ${bank.length}　·　作答中 <b>${attempted}</b>`;
+  document.querySelectorAll('#filters button').forEach((b) => b.classList.toggle('on', b.dataset.f === filter));
+
+  // 「依章節」只在題庫有官方章節資料時提供（基礎練習沒有）
+  const hasCat = bank.some((p) => p.category);
+  document.getElementById('g-cat').hidden = !hasCat;
+  const mode = groupBy === 'cat' && !hasCat ? 'ds' : groupBy;
+  document.body.classList.toggle('algo', mode === 'algo');
+  document.body.classList.toggle('cat', mode === 'cat');
+  document.querySelectorAll('#groupby button').forEach((b) => b.classList.toggle('on', b.dataset.g === mode));
+
+  let groups;
+  if (mode === 'cat') {
+    document.getElementById('note').textContent =
+      `依 ${data.bank_name} 官方題單的章節分類。標示「本次 Q#」的是目前練習中的題目，點一下即可前往。`;
+    groups = data.categories.map((c) => [c, bank.filter((p) => p.category === c)]);
+    groups.push(['其他（不在官方題單中）', bank.filter((p) => !p.category)]);
+  } else {
+    const g = GROUPINGS[mode];
+    document.getElementById('note').textContent =
+      `依${g.name}分類；一題有多個${g.name}標籤時會出現在每一個分類中。標示「本次 Q#」的是目前練習中的題目，點一下即可前往。`;
+    groups = g.list.map((t) => [t, bank.filter((p) => p.tags.includes(t))]);
+    groups.push([`其他（沒有${g.short}標籤）`, bank.filter((p) => !p.tags.some((t) => g.list.includes(t)))]);
+  }
+
+  document.getElementById('groups').innerHTML = groups
+    .filter(([, list]) => list.length)
+    .map(([ds, list]) => {
+      const done = list.filter((p) => p.status === 'solved').length;
+      const shown = list.filter((p) => filter === 'all' || p.status === filter);
+      return `
+        <section>
+          <h2>${esc(ds)}<span class="count">已完成 ${done} / ${list.length}</span></h2>
+          <div class="bar"><div style="width:${(done / list.length) * 100}%"></div></div>
+          <div class="row cols"><span>題目</span><span>難度</span><span>狀態</span><span>完成日期（最新）</span><span></span></div>
+          ${shown.length ? shown.map(row).join('') : '<div class="empty">沒有符合的題目</div>'}
+        </section>`;
+    }).join('');
+}
+
+function row(p) {
+  const order = picked.indexOf(p.id);
+  return `
+    <div class="row ${order >= 0 ? 'picked' : ''}" data-id="${esc(p.id)}">
+      <span class="name"><span class="pick-badge">${order >= 0 ? order + 1 : ''}</span><span class="num">${p.number}.</span>${esc(p.title)}</span>
+      <span class="diff ${p.difficulty}">${p.difficulty}</span>
+      <span class="st ${p.status}">${STATUS[p.status]}</span>
+      <span class="date" title="最新一次提交通過的時間">${p.solved_at ? esc(p.solved_at) : ''}</span>
+      <span class="cur">${p.question ? `<a href="/#q${p.question}" target="pycode-practice">本次 Q${p.question} →</a>` : ''}</span>
+    </div>`;
+}
+
+document.getElementById('filters').onclick = (e) => {
+  const f = e.target.dataset?.f;
+  if (!f) return;
+  filter = f;
+  try { localStorage.setItem('bankFilter', f); } catch {}
+  render();
+};
+document.getElementById('groupby').onclick = (e) => {
+  const v = e.target.dataset?.g;
+  if (!v) return;
+  groupBy = v;
+  try { localStorage.setItem('bankGroupBy', v); } catch {}
+  render();
+};
+// 切換題庫：會影響目前練習的題目，所以先確認
+document.getElementById('bank-select').onchange = async (e) => {
+  const sel = e.target;
+  const name = sel.options[sel.selectedIndex].text;
+  const ok = await askConfirm(`切換到「${name}」會影響目前的練習題目：
+
+會從新題庫重新隨機抽題，取代目前這組題目。
+已寫過的程式碼、完成紀錄都會保留。
+
+確定要切換嗎？`, { title: '切換題庫', okText: '切換' });
+  if (!ok) { sel.value = data.bank; return; }
+  sel.disabled = true;
+  try {
+    await fetch('/api/banks/select', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bank: sel.value }) });
+    await load();
+  } finally {
+    sel.disabled = false;
+  }
+};
+// 回到這個分頁時重新讀取，顯示最新的完成狀態
+/* ---------- 手動選擇題目，組成題組 ---------- */
+let picking = false;
+let picked = [];  // 依點選順序的題目 id
+
+function setPicking(on) {
+  picking = on;
+  if (!on) picked = [];
+  document.body.classList.toggle('picking', on);
+  const btn = document.getElementById('btn-pick');
+  btn.classList.toggle('on', on);
+  btn.textContent = on ? '✋ 選擇中…' : '✋ 手動選擇';
+  btn.title = on ? '再按一次結束手動選擇（不會有任何變更）' : '自己挑選要練習的題目，依點選順序組成題組';
+  render();
+  updatePickBar();
+}
+
+function updatePickBar() {
+  const byId = Object.fromEntries(bank.map((p) => [p.id, p]));
+  document.getElementById('pick-hint').hidden = !picking;
+  document.getElementById('pick-bar').hidden = !(picking && picked.length);
+  document.getElementById('pick-list').innerHTML = `已選 <b>${picked.length}</b> 題：` +
+    picked.map((id, i) => `${i + 1}. ${esc(byId[id] ? byId[id].title : id)}`).join(' → ');
+  document.getElementById('btn-pick-compose').textContent = `組成題組（${picked.length} 題）`;
+}
+
+document.getElementById('btn-pick').onclick = () => setPicking(!picking);
+
+document.getElementById('groups').addEventListener('click', (e) => {
+  if (!picking || e.target.closest('a')) return;  // 「本次 Q#」連結照常運作
+  const r = e.target.closest('.row[data-id]');
+  if (!r) return;
+  const id = r.dataset.id;
+  const i = picked.indexOf(id);
+  if (i >= 0) picked.splice(i, 1); else picked.push(id);
+  render();
+  updatePickBar();
+});
+
+document.getElementById('btn-pick-cancel').onclick = () => setPicking(false);  // 放棄選擇，不做任何更新
+
+document.getElementById('btn-pick-compose').onclick = async () => {
+  const ids = [...picked];
+  const byId = Object.fromEntries(bank.map((p) => [p.id, p]));
+  let res;
+  try {
+    const r = await fetch('/api/set/custom', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }) });
+    res = await r.json();
+    if (!r.ok) throw new Error(res.error || r.statusText);
+  } catch (e) {
+    await askChoice('組成題組失敗：' + e.message, { title: '組成題組' });
+    return;
+  }
+  setPicking(false);
+  await load();
+  await askChoice(`已組成題組，共 ${res.length} 題：\n\n${res.map((p, i) => `Question ${i + 1}：${byId[p.id]?.number}. ${byId[p.id]?.title}`).join('\n')}\n\n回到練習頁就會切換到這組題目。`,
+    { title: '組成題組完成' });
+};
+
+/* ---------- 題庫封裝檔：匯出 / 更換 ---------- */
+async function loadBankSource() {
+  try {
+    const info = await (await fetch('/api/bankfile')).json();
+    const c = info.current;
+    document.getElementById('bank-source').innerHTML = c.source === 'file'
+      ? `題庫檔：<b>${esc(c.file)}</b>（${esc(c.name || '')}${c.built_at ? '，建立於 ' + esc(c.built_at) : ''}，共 ${c.problems} 題）`
+      : c.source === 'none'
+        ? '<b>尚未載入題庫</b>：請按「🔄 更換題庫」選擇題庫檔（.pcbank）'
+        : `題庫來源：<b>原始碼（開發模式）</b>，共 ${c.problems} 題`;
+    return info;
+  } catch { return null; }
+}
+
+document.getElementById('btn-bank-export').onclick = async () => {
+  let r;
+  try {
+    const res = await fetch('/api/bankfile/export', { method: 'POST' });
+    r = await res.json();
+    if (!res.ok) throw new Error(r.error || res.statusText);
+  } catch (e) {
+    await askChoice('匯出題庫失敗：' + e.message, { title: '匯出題庫' });
+    return;
+  }
+  // 一般瀏覽器會下載；內嵌瀏覽器可能不支援下載，檔案仍會存在 exports/
+  const a = document.createElement('a');
+  a.href = '/api/bankfile/download/' + encodeURIComponent(r.filename);
+  a.download = r.filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  await askChoice(`${r.copied ? '已把使用中的題庫檔（bank/）原樣複製為' : '已把目前的題庫（原始碼）封裝成'}（${r.problems} 題，含官方題目內容與圖片）：\n\n${r.filename}（${(r.size / 1024 / 1024).toFixed(1)} MB）\n\n已存到專案的 exports/ 資料夾。把這個檔案放到別台電腦，用「🔄 更換題庫」載入即可。`,
+    { title: '匯出題庫完成' });
+};
+
+document.getElementById('btn-bank-replace').onclick = async () => {
+  const info = await loadBankSource();
+  const choice = await askChoice('要用哪一個題庫檔取代目前的題庫？', {
+    title: '更換題庫',
+    choices: [
+      { value: '__pick__', label: '📂 從電腦選擇題庫檔…', hint: '.pcbank' },
+      ...(info?.files || []).slice(0, 8).map((f) => ({ value: f.name, label: f.name, hint: f.time })),
+    ],
+  });
+  if (!choice) return;
+  if (choice === '__pick__') {
+    const input = document.getElementById('bank-file-input');
+    input.value = '';
+    input.click();  // 選好檔案後由 onchange 繼續
+    return;
+  }
+  replaceBank(fetch('/api/bankfile/inspect', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ server_file: choice }) }));
+};
+
+document.getElementById('bank-file-input').onchange = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  replaceBank(fetch('/api/bankfile/upload', { method: 'POST', headers: { 'X-Filename': encodeURIComponent(file.name) }, body: file }));
+};
+
+async function replaceBank(inspectRequest) {
+  let ins;
+  try {
+    const res = await inspectRequest;
+    ins = await res.json();
+    if (!res.ok) throw new Error(ins.error || res.statusText);
+  } catch (e) {
+    await askChoice('無法使用這個題庫檔：' + e.message, { title: '更換題庫' });
+    return;
+  }
+  const n = ins.new, names = n.bank_names;
+  if (ins.older) {
+    await askChoice(`不允許更換：選擇的題庫比目前使用中的題庫舊。\n\n選擇的題庫：${n.file}\n　建立於 ${n.built_at}\n目前的題庫：${ins.current.file}\n　建立於 ${ins.current.built_at}\n\n只能更換成建立時間相同或更新的題庫。`,
+      { title: '⚠ 題庫版本較舊' });
+    return;
+  }
+  const lines = [
+    `新題庫：${n.name || n.file}${n.built_at ? `（建立於 ${n.built_at}）` : ''}`,
+    ins.current.built_at ? `目前題庫：${ins.current.file}（建立於 ${ins.current.built_at}）` : '',
+    `共 ${n.problems} 題：${Object.entries(n.banks).filter(([b]) => b !== 'all').map(([b, c]) => `${names[b] || b} ${c} 題`).join('、')}`,
+    `和目前題庫相比：新增 ${ins.added} 題、移除 ${ins.removed.length} 題${ins.removed.length ? `（${ins.removed.slice(0, 5).join(', ')}${ins.removed.length > 5 ? '…' : ''}）` : ''}`,
+    '',
+    '你的程式碼與完成紀錄都會保留；被移除的題目紀錄仍留在電腦上，之後換回包含這些題目的題庫就會再出現。',
+    '目前的題庫會先自動備份到 exports/ 資料夾。',
+  ];
+  if (!(await askConfirm(lines.join('\n'), { title: '確認更換題庫', okText: '更換' }))) return;
+  let r;
+  try {
+    const res = await fetch('/api/bankfile/replace', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ server_file: ins.staged }) });
+    r = await res.json();
+    if (!res.ok) throw new Error(r.error || res.statusText);
+  } catch (e) {
+    await askChoice('更換題庫失敗：' + e.message, { title: '更換題庫' });
+    return;
+  }
+  await load();
+  await askChoice(`已更換為：${r.current.file}（${r.current.problems} 題）\n\n${r.backup ? `原本的題庫已備份為：exports/${r.backup}\n` : ''}練習頁回到畫面時會自動換成新題庫的題目。`, { title: '更換完成' });
+}
+
+window.addEventListener('focus', load);
+load();
+</script>
+</body>
+</html>

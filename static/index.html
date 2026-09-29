@@ -1,0 +1,1622 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PyCode 練習</title>
+<script src="/static/vendor/marked.min.js"></script>
+<style>
+  :root {
+    --bg: #1a1a1a; --panel: #262626; --panel-2: #303030; --border: #3a3a3a;
+    --text: #e8e8e8; --muted: #9a9a9a; --accent: #ffa116;
+    --easy: #00b8a3; --medium: #ffc01e; --hard: #ff375f;
+    --ok: #2cbb5d; --bad: #ef4743; --code-bg: #1e1e1e;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font-family: -apple-system, "Segoe UI", "Microsoft JhengHei", "PingFang TC", sans-serif; font-size: 14px; }
+  button { font: inherit; cursor: pointer; border: none; border-radius: 6px; }
+
+  /* 頂部列 */
+  header { height: 48px; display: flex; align-items: center; gap: 10px; padding: 0 12px;
+    background: var(--panel); border-bottom: 1px solid var(--border); }
+  .logo { font-weight: 700; color: var(--accent); margin-right: 8px; white-space: nowrap; }
+  .btn { background: var(--panel-2); color: var(--text); padding: 6px 12px; white-space: nowrap; }
+  header { overflow-x: auto; scrollbar-width: none; }
+  #user-bar { display: flex; align-items: center; gap: 6px; }
+  #user-bar:empty { display: none; }
+  #user-bar .user-name { color: var(--muted); font-size: 13px; white-space: nowrap; }
+  #user-bar a.btn { text-decoration: none; }
+  .btn:hover { background: #3d3d3d; }
+  a.btn { text-decoration: none; font-size: 14px; }
+  .bank-name { color: var(--muted); font-size: 12px; text-decoration: none; border: 1px solid var(--border);
+    border-radius: 10px; padding: 1px 8px; white-space: nowrap; }
+  .bank-name:hover { color: var(--text); }
+  .btn-run { background: #3d3d3d; }
+  .btn-submit { background: var(--ok); color: #fff; font-weight: 600; }
+  .btn-submit:hover { background: #29a852; }
+  .btn:disabled { opacity: .5; cursor: wait; }
+  .spacer { flex: 1; }
+  .progress { color: var(--muted); font-size: 13px; white-space: nowrap; }
+
+  /* 主要版面 */
+  main { display: flex; height: calc(100% - 48px); padding: 8px; gap: 0; }
+  .pane { background: var(--panel); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+  #left { width: 42%; }
+  #right { flex: 1; background: transparent; gap: 0; }
+  .gutter-v { width: 8px; cursor: col-resize; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .gutter-h { height: 8px; cursor: row-resize; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .gutter-v::after { content: ""; width: 2px; height: 24px; background: var(--border); border-radius: 2px; }
+  .gutter-h::after { content: ""; height: 2px; width: 24px; background: var(--border); border-radius: 2px; }
+  .gutter-v:hover::after, .gutter-h:hover::after { background: var(--accent); }
+  .pane-head { height: 38px; display: flex; align-items: center; gap: 8px; padding: 0 12px;
+    background: var(--panel-2); border-bottom: 1px solid var(--border); font-size: 13px; flex-shrink: 0; }
+  .pane-head .title { font-weight: 600; }
+
+  /* 題目 */
+  #problem { padding: 16px 20px 40px; overflow-y: auto; flex: 1; line-height: 1.65; }
+  #problem h1 { font-size: 20px; margin: 0 0 10px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+  .chip { padding: 2px 10px; border-radius: 12px; background: var(--panel-2); font-size: 12px; color: var(--muted); }
+  .Easy { color: var(--easy); } .Medium { color: var(--medium); } .Hard { color: var(--hard); }
+  #problem code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-family: Consolas, Menlo, monospace; font-size: 13px; }
+  #problem blockquote { margin: 12px 0; padding: 4px 12px; border-left: 3px solid var(--border); color: var(--muted); }
+  .example { margin: 12px 0; }
+  .example b { display: block; margin-bottom: 4px; }
+  .tag-groups { display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; align-items: center; margin: 4px 0 8px; }
+  .tg-label { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .tg-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip.ds { color: #7cb7ff; background: rgba(124,183,255,.12); }
+  .chip.algo { color: #6fd39a; background: rgba(111,211,154,.12); }
+  .guide-tip { font-size: 12px; color: var(--muted); margin: 2px 0 8px; }
+  .sol-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+  .sol-card { padding: 8px 12px; border-radius: 8px; background: rgba(0,0,0,.18); border: 1px solid var(--border); cursor: pointer; }
+  .sol-card:hover { border-color: #6fd39a; }
+  .sol-card.selected { border-color: #6fd39a; background: rgba(111,211,154,.1); box-shadow: 0 0 0 1px #6fd39a inset; }
+  .sol-name { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+  .sol-no { font-size: 11px; color: #6fd39a; background: rgba(111,211,154,.15); padding: 1px 8px; border-radius: 10px; }
+  .sol-card.selected .sol-name::after { content: "✓ 已選擇"; font-size: 11px; color: #6fd39a; }
+  .sol-steps { margin-left: auto; font-size: 11px; color: var(--muted); font-weight: 400; }
+  .sol-uses { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; }
+  .sol-uses .tg-label { margin-right: 2px; }
+
+  /* 逐步引導 */
+  #guide-bar { padding: 10px 14px; background: rgba(111,211,154,.08); border-bottom: 1px solid rgba(111,211,154,.3);
+    font-size: 13px; line-height: 1.6; flex-shrink: 0; max-height: 34%; overflow-y: auto; }
+  #guide-bar .g-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  #guide-bar .g-stages { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 8px 0 2px; }
+  #guide-bar .g-stage { background: var(--panel-2); color: var(--muted); padding: 3px 10px; font-size: 12px; border-radius: 12px; }
+  #guide-bar .g-stage:hover { color: var(--text); }
+  #guide-bar .g-stage.done { color: #6fd39a; }
+  #guide-bar .g-stage.on { background: #6fd39a; color: #10301f; font-weight: 700; }
+  #guide-bar .g-arrow { color: var(--muted); font-size: 11px; }
+  #guide-bar .g-title { font-weight: 600; }
+  #guide-bar .g-explain p { margin: 4px 0 0; color: #cfcfcf; }
+  #guide-bar .g-explain code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-family: Consolas, Menlo, monospace; }
+  #guide-bar .g-actions { margin-left: auto; display: flex; gap: 6px; }
+  #guide-bar .g-actions button { font-size: 12px; padding: 3px 10px; }
+  #guide-bar.warn { background: rgba(255,161,22,.08); border-bottom-color: rgba(255,161,22,.35); }
+  .guide-line { background: rgba(111,211,154,.14); }
+  .guide-gutter { border-left: 3px solid #6fd39a; margin-left: 3px; }
+  .orig-title { margin: 8px 0; font-weight: 600; }
+  .orig-link { margin-left: 8px; font-size: 12px; font-weight: 400; color: var(--accent); text-decoration: none; }
+  .orig-link:hover { text-decoration: underline; }
+  .btn-hint { padding: 2px 12px; border-radius: 12px; font-size: 12px;
+    background: rgba(255,161,22,.15); color: var(--accent); }
+  .btn-hint:hover, .btn-hint.on { background: rgba(255,161,22,.28); }
+  .hint-panel { margin: 0 0 18px; padding: 4px 16px 10px; border-radius: 8px;
+    background: rgba(255,161,22,.07); border: 1px solid rgba(255,161,22,.35); }
+  .hint-title { margin: 10px 0 -4px; font-size: 12px; font-weight: 700; color: var(--accent); }
+  .hint-panel details { margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(255,161,22,.35); }
+  .hint-panel summary { cursor: pointer; color: var(--accent); font-size: 13px; }
+  /* LeetCode 官方題目內容（與 leetcode.com 的排版一致） */
+  #problem .lc-content { font-size: 14px; line-height: 1.7; }
+  #problem .lc-content p { margin: 0 0 14px; }
+  #problem .lc-content ul, #problem .lc-content ol { margin: 0 0 14px; padding-left: 22px; }
+  #problem .lc-content li { margin: 6px 0; }
+  #problem .lc-content code { background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1); border-radius: 5px;
+    padding: 1px 5px; font-family: Menlo, Consolas, monospace; font-size: 13px; }
+  #problem .lc-content pre { margin: 0 0 16px; padding: 4px 0 4px 16px; border-left: 2px solid rgba(255,255,255,.14);
+    background: transparent; white-space: pre-wrap; word-break: break-word;
+    font-family: Menlo, Consolas, monospace; font-size: 13px; line-height: 1.7; color: #d0d0d0; }
+  #problem .lc-content pre code { background: none; border: none; padding: 0; }
+  #problem .lc-content pre strong { color: #fff; }
+  #problem .lc-content strong.example, #problem .lc-content .example strong { color: #fff; }
+  #problem .lc-content img { max-width: 100%; height: auto !important; margin: 4px 0 10px; border-radius: 6px; background: #fff; }
+  #problem .lc-content sup, #problem .lc-content sub { font-size: 75%; line-height: 0; }
+  #problem .lc-content .example-block { margin: 0 0 16px; padding: 4px 0 4px 16px; border-left: 2px solid rgba(255,255,255,.14); }
+  #problem .lc-content .example-block p { margin: 4px 0; }
+  #problem .lc-content .example-io { font-family: Menlo, Consolas, monospace; font-size: 13px; }
+  #problem .lc-content a { color: #4d9fff; }
+  .offline-note { color: var(--accent); font-size: 12px; }
+  .example pre { margin: 0; padding: 10px 14px; background: var(--panel-2); border-left: 3px solid var(--border);
+    border-radius: 4px; white-space: pre-wrap; word-break: break-all; font-family: Consolas, Menlo, monospace; font-size: 13px; }
+
+  /* 編輯器 */
+  #editor-pane { flex: 1; min-height: 120px; }
+  #editor { flex: 1; min-height: 0; position: relative; }
+  #editor textarea { width: 100%; height: 100%; border: none; outline: none; resize: none; padding: 12px;
+    background: var(--code-bg); color: var(--text); font: 14px/1.5 Consolas, Menlo, monospace; tab-size: 4; }
+  .save-state { color: var(--muted); font-size: 12px; }
+
+  /* 結果 */
+  #result-pane { height: 34%; min-height: 60px; }
+  #result { flex: 1; overflow-y: auto; padding: 14px 16px; }
+  .placeholder { color: var(--muted); }
+  .status { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .status.ok { color: var(--ok); } .status.bad { color: var(--bad); }
+  .sub { color: var(--muted); font-size: 12px; margin-bottom: 12px; }
+  .cases { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .case-tab { background: var(--panel-2); color: var(--muted); padding: 4px 12px; }
+  .case-tab.active { background: #444; color: var(--text); }
+  .case-tab .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+  .field { margin-bottom: 10px; }
+  .field label { display: block; color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+  .field pre { margin: 0; padding: 8px 12px; background: var(--panel-2); border-radius: 6px;
+    white-space: pre-wrap; word-break: break-all; font-family: Consolas, Menlo, monospace; font-size: 13px; }
+  .field pre.err { color: #ff8a80; background: #3a2323; }
+  .field pre.diff { color: #ff8a80; }
+
+  /* 題目清單抽屜 */
+  #drawer-mask { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; z-index: 10; }
+  #drawer { position: fixed; top: 0; left: 0; bottom: 0; width: 420px; max-width: 90vw; background: var(--panel);
+    transform: translateX(-100%); transition: transform .2s; z-index: 11; display: flex; flex-direction: column; }
+  body.drawer-open #drawer { transform: none; }
+  body.drawer-open #drawer-mask { display: block; }
+  .drawer-title { padding: 14px 16px; font-weight: 700; border-bottom: 1px solid var(--border); }
+  #plist { overflow-y: auto; flex: 1; }
+  .pitem { display: flex; align-items: center; gap: 10px; padding: 10px 16px; cursor: pointer; }
+  .pitem:nth-child(odd) { background: #2a2a2a; }
+  .pitem:hover, .pitem.current { background: #363636; }
+  .pitem .check { width: 16px; color: var(--ok); }
+  .pitem .name { flex: 1; }
+  .pitem .diff { font-size: 12px; }
+
+  kbd { font-family: inherit; font-size: 11px; color: var(--muted); }
+
+  /* 逐步除錯 */
+  .dbg-line { background: rgba(255, 196, 0, .18); }
+  .dbg-line-ret { background: rgba(44, 187, 93, .16); }
+  .dbg-line-exc { background: rgba(239, 71, 67, .22); }
+  .dbg-glyph::before { content: '➤'; color: #ffc400; font-size: 13px; padding-left: 3px; }
+  .dbg-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px; }
+  .dbg-bar .btn { padding: 4px 9px; }
+  .dbg-bar .title { font-weight: 600; margin-right: 6px; }
+  .dbg-bar select { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 3px 6px; }
+  .dbg-slider { width: 100%; margin: 2px 0 8px; accent-color: var(--accent); }
+  .dbg-info { font-size: 13px; margin-bottom: 8px; }
+  .dbg-info .ev { display: inline-block; border-radius: 10px; padding: 1px 8px; margin-right: 6px; font-size: 12px; background: var(--panel-2); }
+  .dbg-info .ev.call { color: #9cdcfe; } .dbg-info .ev.return { color: var(--ok); } .dbg-info .ev.exception { color: var(--bad); }
+  .dbg-grid { display: grid; grid-template-columns: 3fr 2fr; gap: 10px; }
+  .dbg-box { background: var(--code-bg); border-radius: 6px; padding: 6px 8px; min-width: 0; }
+  .dbg-box h4 { margin: 0 0 4px; font-size: 12px; color: var(--muted); font-weight: 600; }
+  .dbg-vars { width: 100%; border-collapse: collapse; font-family: Consolas, Menlo, monospace; font-size: 12.5px; }
+  .dbg-vars td { padding: 2px 4px; vertical-align: top; border-top: 1px solid #2a2a2a; }
+  .dbg-vars td:first-child { color: #9cdcfe; white-space: nowrap; width: 1%; }
+  .dbg-vars td:last-child { word-break: break-all; }
+  .dbg-vars tr.changed td:last-child { color: #ffc400; }
+  .dbg-stack { font-family: Consolas, Menlo, monospace; font-size: 12.5px; }
+  .dbg-stack div.cur { color: var(--accent); }
+  .dbg-kbd { color: var(--muted); font-size: 11px; margin-top: 8px; }
+  @media (max-width: 700px) { .dbg-grid { grid-template-columns: 1fr; } }
+
+  /* 手機版（寬度 < 768px）：題目｜程式碼｜結果 三個分頁，執行按鈕固定在底部 */
+  .mobile-only { display: none; }
+  .cm-editor { height: 100%; }
+  .cm-editor .cm-line.guide-line { background: rgba(111,211,154,.16) !important; }
+  .cm-editor .cm-line.dbg-line { background: rgba(255,196,0,.22) !important; }
+  .cm-editor .cm-line.dbg-line-ret { background: rgba(44,187,93,.2) !important; }
+  .cm-editor .cm-line.dbg-line-exc { background: rgba(239,71,67,.26) !important; }
+  .cm-dbg-gutter { width: 14px; }
+  #more-mask { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 30; }
+  #more-menu { position: fixed; right: 8px; top: 52px; z-index: 31; min-width: 220px; background: var(--panel);
+    border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,.5); padding: 6px; }
+  #more-menu[hidden], #more-mask[hidden] { display: none; }
+  #more-menu .mi { display: block; width: 100%; text-align: left; background: none; color: var(--text); padding: 12px 12px;
+    font-size: 15px; border-radius: 6px; text-decoration: none; }
+  #more-menu .mi:active, #more-menu .mi:hover { background: var(--panel-2); }
+  #more-menu .mi-sub { color: var(--muted); font-size: 12px; padding: 6px 12px 2px; }
+  #more-menu .mi-row { display: flex; align-items: center; gap: 8px; padding: 6px 12px; }
+  #more-menu .mi-row button { background: var(--panel-2); color: var(--text); padding: 8px 14px; font-size: 15px; }
+  #more-menu hr { border: none; border-top: 1px solid var(--border); margin: 4px 0; }
+
+  @media (max-width: 767px) {
+    .desk { display: none !important; }
+    .mobile-only { display: revert; }
+    kbd { display: none; }
+    header { height: 48px; gap: 6px; padding: 0 8px; }
+    .logo { margin-right: 0; font-size: 0; }
+    .logo::before { content: '🐍'; font-size: 20px; }
+    #btn-list { padding: 6px 10px; font-size: 0; }
+    #btn-list::before { content: '☰'; font-size: 16px; }
+    #btn-prev, #btn-next { padding: 6px 12px; font-size: 16px; }
+    #btn-more { font-size: 18px; padding: 4px 14px; }
+    /* 內容區：扣掉頂部列與底部列 */
+    main { display: block; height: calc(100% - 48px - var(--mbar, 104px)); padding: 6px; }
+    .gutter-v, .gutter-h { display: none; }
+    #left, #right { width: 100% !important; height: 100%; display: none; }
+    body[data-tab="problem"] #left { display: flex; }
+    body[data-tab="code"] #right, body[data-tab="result"] #right { display: flex; }
+    body[data-tab="code"] #result-pane { display: none; }
+    body[data-tab="result"] #editor-pane { display: none; }
+    #editor-pane { height: 100% !important; flex: 1; }
+    #result-pane { height: 100% !important; flex: 1; }
+    #problem { padding: 12px 14px 32px; }
+    #problem .lc-content pre { font-size: 12.5px; }
+    .pane-head { gap: 6px; padding: 0 8px; }
+    .pane-head .btn { padding: 5px 8px; font-size: 13px; }
+    #btn-reset { font-size: 0; } #btn-reset::before { content: '↺'; font-size: 15px; }
+    /* 程式碼分頁的標題列：一行放得下 */
+    #editor-pane .pane-head .title { white-space: nowrap; font-size: 0; }
+    #editor-pane .pane-head .title::before { content: '</>'; font-size: 13px; }
+    #save-state { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 110px; font-size: 11px; }
+    #btn-step-prev, #btn-step-next { white-space: nowrap; }
+    #guide-bar { max-height: 30%; padding: 8px 10px; }
+    #guide-bar .g-actions { margin-left: 0; }
+    /* 符號鍵列：可以左右滑動 */
+    #keyrow { display: flex; gap: 4px; overflow-x: auto; padding: 5px 6px; background: var(--panel-2);
+      border-bottom: 1px solid var(--border); flex-shrink: 0; scrollbar-width: none; }
+    #keyrow::-webkit-scrollbar { display: none; }
+    #keyrow button { flex: 0 0 auto; min-width: 38px; height: 36px; padding: 0 10px; background: #3a3a3a; color: var(--text);
+      font: 15px Consolas, Menlo, monospace; border-radius: 6px; }
+    #keyrow button:active { background: var(--accent); color: #1a1a1a; }
+    /* 底部：執行按鈕 + 分頁 */
+    #mobile-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--panel);
+      border-top: 1px solid var(--border); padding-bottom: env(safe-area-inset-bottom); }
+    .mb-actions { display: flex; gap: 8px; padding: 8px 8px 6px; }
+    .mb-actions .btn { flex: 1; height: 42px; font-size: 15px; }
+    #m-submit { flex: 1.2; }
+    body[data-tab="problem"] .mb-actions { display: none; }
+    .mb-tabs { display: flex; }
+    .mb-tabs button { flex: 1; background: none; color: var(--muted); padding: 10px 0 12px; font-size: 14px; border-radius: 0; position: relative; }
+    .mb-tabs button.on { color: var(--accent); box-shadow: inset 0 2px 0 var(--accent); }
+    .mb-badge { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-left: 4px; vertical-align: 2px; }
+    /* 結果與除錯 */
+    #result { padding: 12px; }
+    .dbg-bar .btn { padding: 8px 10px; font-size: 14px; }
+    .dbg-bar .title { width: 100%; }
+    .dbg-kbd { display: none; }
+    #drawer { width: 88vw; }
+    .pitem { padding: 14px 16px; }
+    #doc-pop { left: 8px !important; right: 8px; width: auto; max-height: 55vh; }
+  }
+
+  /* 編輯器右鍵：語法說明小視窗 */
+  #doc-pop { position: fixed; z-index: 1000; width: 440px; max-width: calc(100vw - 16px); max-height: 60vh; overflow: auto;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 28px rgba(0,0,0,.5);
+    padding: 10px 12px; font-size: 13px; }
+  #doc-pop[hidden] { display: none; }
+  #doc-pop .dp-item + .dp-item { border-top: 1px dashed var(--border); margin-top: 10px; padding-top: 10px; }
+  #doc-pop .dp-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  #doc-pop .dp-name { font-family: Consolas, Menlo, monospace; font-weight: 600; color: var(--accent); }
+  #doc-pop .dp-owner { font-size: 11px; color: var(--muted); background: var(--panel-2); border-radius: 10px; padding: 1px 8px; }
+  #doc-pop .dp-sig { font-family: Consolas, Menlo, monospace; color: #9cdcfe; margin: 4px 0; word-break: break-all; }
+  #doc-pop .dp-desc { line-height: 1.6; }
+  #doc-pop pre { background: var(--code-bg); border-radius: 6px; padding: 8px 10px; margin: 6px 0 0; overflow-x: auto;
+    font-family: Consolas, Menlo, monospace; font-size: 12.5px; line-height: 1.5; }
+  #doc-pop .dp-foot { color: var(--muted); font-size: 11px; margin-top: 10px; }
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">🐍 PyCode 練習</span>
+  <button class="btn" id="btn-list" title="題目清單">☰ 題目清單</button>
+  <button class="btn" id="btn-prev" title="上一題">‹</button>
+  <button class="btn" id="btn-next" title="下一題">›</button>
+  <span class="progress" id="progress"></span>
+  <a class="bank-name desk" id="bank-name" href="/bank" target="pycode-bank" rel="opener" title="目前的題庫（到題庫清單切換）"></a>
+  <button class="btn desk" id="btn-refresh" title="隨機換一組新題目（已寫的程式碼會保留）">🔀 刷新題目</button>
+  <a class="btn desk" id="btn-bank" href="/bank" target="pycode-bank" rel="opener" title="在新分頁開啟整個題庫清單">📚 題庫清單</a>
+  <button class="btn desk" id="btn-export" title="把程式碼與紀錄匯出成 YAML 或 JSON 檔">⬇ 匯出</button>
+  <button class="btn desk" id="btn-import" title="從 YAML 或 JSON 檔匯入程式碼與紀錄">⬆ 匯入</button>
+  <input type="file" id="import-file" accept=".yaml,.yml,.json" hidden>
+  <input type="file" id="bank-first-input" accept=".pcbank" hidden>
+  <div class="spacer"></div>
+  <span id="user-bar" class="desk"></span>
+  <button class="btn mobile-only" id="btn-more" title="更多功能" aria-label="更多功能">⋯</button>
+  <button class="btn desk" id="btn-debug" title="逐步執行範例測資，查看每一步執行哪一行、變數怎麼變化（F9）">🐞 除錯</button>
+  <button class="btn btn-run desk" id="btn-run" title="Ctrl+Enter">▶ 執行 <kbd>Ctrl+Enter</kbd></button>
+  <button class="btn btn-submit desk" id="btn-submit" title="Ctrl+Shift+Enter">提交</button>
+</header>
+
+<main>
+  <section class="pane" id="left">
+    <div class="pane-head"><span class="title">📄 題目描述</span></div>
+    <div id="problem"><p class="placeholder">載入中…</p></div>
+  </section>
+
+  <div class="gutter-v" id="gutter-v"></div>
+
+  <section class="pane" id="right">
+    <div class="pane" id="editor-pane">
+      <div class="pane-head">
+        <span class="title">&lt;/&gt; Python 3</span>
+        <span class="save-state" id="save-state"></span>
+        <div class="spacer"></div>
+        <button class="btn" id="btn-step-prev" title="回到上一個階段">◀ 上一步</button>
+        <button class="btn" id="btn-step-next" title="顯示所選解法的下一個階段提示">下一步 ▶</button>
+        <button class="btn" id="btn-reset" title="還原成初始程式碼">↺ 重設</button>
+      </div>
+      <div id="guide-bar" hidden></div>
+      <!-- 手機：程式符號鍵列（手機鍵盤不好打的符號） -->
+      <div id="keyrow" class="mobile-only" aria-label="程式符號">
+        <button data-k="indent" title="增加縮排">⇥</button><button data-k="outdent" title="減少縮排">⇤</button>
+        <button data-k="left" title="游標左移">←</button><button data-k="right" title="游標右移">→</button>
+        <button data-ins="()" data-back="1">( )</button><button data-ins="[]" data-back="1">[ ]</button>
+        <button data-ins="{}" data-back="1">{ }</button><button data-ins=":">:</button><button data-ins="=">=</button>
+        <button data-ins="_">_</button><button data-ins="''" data-back="1">' '</button><button data-ins='""' data-back="1">" "</button>
+        <button data-ins="#">#</button><button data-ins="<">&lt;</button><button data-ins=">">&gt;</button>
+        <button data-ins="!">!</button><button data-ins=".">.</button><button data-ins=",">,</button>
+        <button data-k="undo" title="復原">↶</button>
+      </div>
+      <div id="editor"></div>
+    </div>
+    <div class="gutter-h" id="gutter-h"></div>
+    <div class="pane" id="result-pane">
+      <div class="pane-head"><span class="title">✅ 測試結果</span></div>
+      <div id="result"><p class="placeholder">按「執行」跑範例測資，按「提交」跑全部測資（含隱藏）。</p></div>
+    </div>
+  </section>
+</main>
+
+<!-- 手機：底部的執行按鈕與分頁 -->
+<div id="mobile-bar" class="mobile-only">
+  <div class="mb-actions">
+    <button class="btn" id="m-debug">🐞 除錯</button>
+    <button class="btn btn-run" id="m-run">▶ 執行</button>
+    <button class="btn btn-submit" id="m-submit">提交</button>
+  </div>
+  <nav class="mb-tabs">
+    <button data-tab="problem">📄 題目</button>
+    <button data-tab="code">&lt;/&gt; 程式碼</button>
+    <button data-tab="result">✅ 結果<span class="mb-badge" id="m-badge" hidden></span></button>
+  </nav>
+</div>
+<div id="more-mask" hidden></div>
+<div id="more-menu" hidden role="menu"></div>
+
+<div id="drawer-mask"></div>
+<aside id="drawer">
+  <div class="drawer-title">Questions</div>
+  <div id="plist"></div>
+</aside>
+
+<script src="/tags.js"></script>
+<script src="/static/dialog.js"></script>
+<script src="/static/session.js"></script>
+<script src="/static/pydoc_zh.js"></script>
+<script src="/static/vendor/monaco/vs/loader.js"></script>
+<script src="/static/vendor/codemirror/pycode-cm.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+window.name = 'pycode-practice';  // 讓題庫清單頁的「本次 Q#」連結回到這個分頁
+const state = { problems: [], current: null, saveTimer: null, retryTimers: {} };
+
+/* ---------- 編輯器（Monaco，載入失敗則退回 textarea） ---------- */
+const editor = {
+  impl: null,
+  getValue() { return this.impl ? this.impl.getValue() : ''; },
+  setValue(v) { this.impl && this.impl.setValue(v); },
+  focusEnd() {},
+};
+
+// ---------------------------------------------------------------- 右鍵語法說明
+const DOC_OWNER = {
+  builtin: '內建', keyword: 'Python', typing: '型別註記', list: 'list 方法', str: 'str 方法', dict: 'dict 方法',
+  set: 'set 方法', deque: 'deque 方法', Counter: 'Counter 方法', OrderedDict: 'OrderedDict 方法',
+  collections: 'collections', heapq: 'heapq', bisect: 'bisect', math: 'math', itertools: 'itertools',
+  functools: 'functools', string: 'string', random: 'random',
+};
+const reEsc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// 在使用者自己的程式碼裡找這個名稱的定義：函式、類別、參數、變數（第一次指定）、for 迴圈變數
+function findUserDefs(model, name, prefix) {
+  const w = reEsc(name);
+  const pats = [
+    [new RegExp(`^\\s*def\\s+${w}\\s*\\(`), '函式'],
+    [new RegExp(`^\\s*class\\s+${w}\\b`), '類別'],
+  ];
+  if (prefix === 'self') {
+    pats.push([new RegExp(`\\bself\\.${w}\\s*(?::[^=]*)?=(?!=)`), '屬性']);
+  } else if (!prefix) {
+    pats.push([new RegExp(`^\\s*def\\s+\\w+\\s*\\((?:[^)]*[,(\\s])?${w}\\s*[:=,)]`), '參數']);
+    pats.push([new RegExp(`^\\s*(?:[\\w\\s,\\[\\]]*,\\s*)?${w}\\s*(?::[^=]*)?(?:[-+*/%|&^]|//)?=(?!=)`), '變數']);
+    pats.push([new RegExp(`^\\s*for\\s+[\\w\\s,()]*\\b${w}\\b[\\w\\s,()]*\\s+in\\s`), '迴圈變數']);
+  }
+  const found = [];
+  for (const [re, kind] of pats) {
+    for (let ln = 1; ln <= model.getLineCount(); ln++) {
+      const text = model.getLineContent(ln);
+      if (re.test(text.replace(/#.*$/, ''))) {
+        found.push({ kind, line: ln, text: text.trim() });
+        break;  // 每一種只列第一次出現
+      }
+    }
+  }
+  return found;
+}
+
+async function showDoc(m, pos, x, y) {
+  const model = m.getModel();
+  const word = model.getWordAtPosition(pos);
+  const pop = $('#doc-pop') || document.body.appendChild(Object.assign(document.createElement('div'), { id: 'doc-pop' }));
+  let html = '';
+  if (!word) {
+    html = '<div class="dp-desc" style="color:var(--muted)">把游標放在函式、類別或變數名稱上再按右鍵，可以查看語法說明。</div>';
+  } else {
+    const before = model.getLineContent(pos.lineNumber).slice(0, word.startColumn - 1);
+    const pm = before.match(/([A-Za-z_]\w*)\s*\.\s*$/);
+    const prefix = pm ? pm[1] : null;
+    const name = word.word;
+    const defs = findUserDefs(model, name, prefix);
+    const docs = window.PYDOC ? PYDOC.lookup(name, prefix) : [];
+    for (const d of defs) {
+      html += `<div class="dp-item"><div class="dp-head"><span class="dp-name">${esc(name)}</span>
+        <span class="dp-owner">你的程式碼 · ${d.kind} · 第 ${d.line} 行</span></div>
+        <pre>${await colorize(d.text)}</pre></div>`;
+    }
+    for (const d of docs) {
+      html += `<div class="dp-item"><div class="dp-head"><span class="dp-name">${esc(name)}</span>
+        <span class="dp-owner">${esc(DOC_OWNER[d.owner] || d.owner)}</span></div>
+        <div class="dp-sig">${esc(d.sig)}</div><div class="dp-desc">${esc(d.desc)}</div>
+        <pre>${await colorize(d.example)}</pre></div>`;
+    }
+    if (!html) {
+      html = `<div class="dp-head"><span class="dp-name">${esc(prefix ? prefix + '.' + name : name)}</span></div>
+        <div class="dp-desc" style="color:var(--muted)">速查表裡沒有這個名稱的說明。</div>`;
+    }
+  }
+  pop.innerHTML = html + '<div class="dp-foot">Esc 或點其他地方關閉 · 複製 / 貼上請用 Ctrl+C / Ctrl+V</div>';
+  pop.hidden = false;
+  // 放在滑鼠旁邊，超出視窗時往內移
+  const r = pop.getBoundingClientRect();
+  pop.style.left = Math.max(8, Math.min(x + 4, innerWidth - r.width - 8)) + 'px';
+  pop.style.top = Math.max(8, Math.min(y + 4, innerHeight - r.height - 8)) + 'px';
+}
+
+async function colorize(code) {
+  try { return await monaco.editor.colorize(code, 'python', { tabSize: 4 }); } catch { return esc(code); }
+}
+
+function hideDoc() { const p = $('#doc-pop'); if (p) p.hidden = true; }
+document.addEventListener('mousedown', (e) => { if (!e.target.closest('#doc-pop')) hideDoc(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideDoc(); });
+
+function initMonaco() {
+  return new Promise((resolve) => {
+    const fallback = setTimeout(() => resolve(false), 8000);
+    if (!window.require) { clearTimeout(fallback); return resolve(false); }
+    require.config({ paths: { vs: '/static/vendor/monaco/vs' } });  // 本機附帶的 Monaco，離線也能用
+    require(['vs/editor/editor.main'], () => {
+      clearTimeout(fallback);
+      const m = monaco.editor.create($('#editor'), {
+        language: 'python', theme: 'vs-dark', fontSize: fontSize(), tabSize: 4, insertSpaces: true,
+        minimap: { enabled: false }, automaticLayout: true, scrollBeyondLastLine: false,
+        fontFamily: 'Consolas, Menlo, monospace', padding: { top: 10 },
+        contextmenu: false,  // 右鍵改成顯示語法說明（複製貼上用 Ctrl+C / Ctrl+V）
+      });
+      m.onContextMenu((e) => {
+        if (!e.target.position) return;
+        e.event.preventDefault();
+        showDoc(m, e.target.position, e.event.browserEvent.clientX, e.event.browserEvent.clientY);
+      });
+      m.onDidScrollChange(hideDoc);
+      m.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => run(false));
+      m.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Enter, () => run(true));
+      m.onDidChangeModelContent(() => {
+        scheduleSave();
+        // 程式碼改了，錄下來的執行過程就不再對應：結束除錯
+        if (state.dbg && m.getValue() !== state.dbg.code) endDebug('程式碼已修改，已結束除錯。按「🐞 除錯」重新錄製。');
+      });
+      editor.impl = m;
+      editor.focusEnd = () => {
+        const model = m.getModel(), line = model.getLineCount();
+        m.setPosition({ lineNumber: line, column: model.getLineMaxColumn(line) });
+        m.focus();
+      };
+      resolve(true);
+    }, () => { clearTimeout(fallback); resolve(false); });
+  });
+}
+
+function initTextarea() {
+  const ta = document.createElement('textarea');
+  ta.spellcheck = false;
+  $('#editor').innerHTML = '';
+  $('#editor').appendChild(ta);
+  ta.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const s = ta.selectionStart;
+      ta.setRangeText('    ', s, ta.selectionEnd, 'end');
+      scheduleSave();
+    }
+  });
+  ta.addEventListener('input', scheduleSave);
+  editor.impl = { getValue: () => ta.value, setValue: (v) => { ta.value = v; } };
+  editor.focusEnd = () => { ta.focus(); ta.selectionStart = ta.selectionEnd = ta.value.length; };
+}
+
+/* ---------- 手機：觸控編輯器（CodeMirror 6）、分頁、選單、符號鍵列 ---------- */
+const isPhone = () => matchMedia('(max-width: 767px)').matches;
+// 觸控裝置（手機、平板）用 CodeMirror：Monaco 在觸控螢幕上選取、游標、輸入法都不穩定
+const useTouchEditor = () => !!window.PyCodeCM && (isPhone() || matchMedia('(pointer: coarse)').matches);
+
+function fontSize() {
+  let v = 0;
+  try { v = +localStorage.getItem('fontSize'); } catch {}
+  return v >= 11 && v <= 20 ? v : (isPhone() ? 13 : 14);
+}
+function setFontSize(v) {
+  v = Math.max(11, Math.min(20, v));
+  try { localStorage.setItem('fontSize', String(v)); } catch {}
+  if (editor.impl?.setFontSize) editor.impl.setFontSize(v);
+  else if (editor.impl?.updateOptions) editor.impl.updateOptions({ fontSize: v });
+  return v;
+}
+
+function initCM() {
+  const m = PyCodeCM.create($('#editor'), { fontSize: fontSize(), onRun: (submit) => run(submit) });
+  m.onDidChangeModelContent(() => {
+    scheduleSave();
+    if (state.dbg && m.getValue() !== state.dbg.code) endDebug('程式碼已修改，已結束除錯。按「🐞 除錯」重新錄製。');
+  });
+  editor.impl = m;
+  editor.focusEnd = () => {
+    const model = m.getModel(), line = model.getLineCount();
+    m.setPosition({ lineNumber: line, column: model.getLineMaxColumn(line) });
+    m.focus();
+  };
+  // 其他功能（除錯的目前行、語法說明）用到的 monaco 名稱，換成這個編輯器的版本
+  if (!window.monaco) {
+    window.monaco = {
+      Range: class { constructor(a, b, c, d) { Object.assign(this, { startLineNumber: a, startColumn: b, endLineNumber: c, endColumn: d }); } },
+      editor: { colorize: async (code) => esc(code), getModels: () => [m.getModel()], getEditors: () => [m] },
+    };
+  }
+  // 長按名稱：顯示語法說明（手機沒有右鍵）
+  let timer = null, start = null;
+  const dom = m.view.dom;
+  dom.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) return;
+    start = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      const p = m.posAtCoords(start.x, start.y);
+      if (p) showDoc(m, p, start.x, start.y);
+    }, 550);
+  }, { passive: true });
+  const cancel = (e) => {
+    if (e.type === 'touchmove' && start && Math.hypot(e.touches[0].clientX - start.x, e.touches[0].clientY - start.y) < 10) return;
+    clearTimeout(timer);
+  };
+  dom.addEventListener('touchmove', cancel, { passive: true });
+  dom.addEventListener('touchend', cancel);
+  dom.addEventListener('contextmenu', (e) => {  // 電腦上用觸控編輯器時（平板＋滑鼠），右鍵一樣可以用
+    const p = m.posAtCoords(e.clientX, e.clientY);
+    if (p && e.pointerType !== 'touch') { e.preventDefault(); showDoc(m, p, e.clientX, e.clientY); }
+  });
+  m.view.scrollDOM.addEventListener('scroll', hideDoc, { passive: true });
+  return true;
+}
+
+// 符號鍵列
+document.querySelectorAll('#keyrow button').forEach((b) => {
+  b.addEventListener('mousedown', (e) => e.preventDefault());  // 不要讓編輯器失去焦點（鍵盤會收起來）
+  b.onclick = () => {
+    const m = editor.impl;
+    if (!m?.insert) return;
+    const k = b.dataset.k;
+    if (b.dataset.ins != null) m.insert(b.dataset.ins, +(b.dataset.back || 0));
+    else if (k === 'indent' || k === 'outdent') m.indent(k === 'indent');
+    else if (k === 'left' || k === 'right') m.moveCursor(k === 'left' ? -1 : 1);
+    else if (k === 'undo') m.undo();
+  };
+});
+
+// 分頁：題目｜程式碼｜結果
+function setTab(tab) {
+  document.body.dataset.tab = tab;
+  document.querySelectorAll('.mb-tabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === tab));
+  if (tab === 'result') $('#m-badge').hidden = true;
+  hideDoc();
+  if (editor.impl?.layout) editor.impl.layout();
+}
+document.querySelectorAll('.mb-tabs button').forEach((b) => (b.onclick = () => setTab(b.dataset.tab)));
+// 執行完：手機自動切到結果分頁；結果旁的小圓點顯示通過或失敗
+function showResultTab(ok) {
+  if (!isPhone()) return;
+  const badge = $('#m-badge');
+  badge.style.background = ok == null ? 'var(--accent)' : ok ? 'var(--ok)' : 'var(--bad)';
+  if (document.body.dataset.tab !== 'result') setTab('result');
+  else badge.hidden = true;
+}
+$('#m-run').onclick = () => run(false);
+$('#m-submit').onclick = () => run(true);
+$('#m-debug').onclick = () => startDebug(state.dbg ? state.dbg.ex : 0);
+// 底部列的實際高度（不同手機的安全區域不同）
+const mbar = () => document.documentElement.style.setProperty('--mbar', ($('#mobile-bar').offsetHeight || 104) + 'px');
+new ResizeObserver(mbar).observe($('#mobile-bar'));
+document.body.dataset.tab = 'problem';
+document.querySelector('.mb-tabs button[data-tab="problem"]').classList.add('on');
+
+// 「⋯」選單：手機上放不下的按鈕
+function openMore() {
+  const menu = $('#more-menu'), me = window.PC && PC.me;
+  const item = (label, id) => `<button class="mi" data-click="${id}">${label}</button>`;
+  menu.innerHTML = `
+    <div class="mi-sub">${esc($('#bank-name').textContent || '')}</div>
+    ${item('🔀 刷新題目', 'btn-refresh')}
+    <a class="mi" href="/bank" target="pycode-bank">📚 題庫清單</a>
+    ${item('⬇ 匯出程式碼與紀錄', 'btn-export')}
+    ${item('⬆ 匯入', 'btn-import')}
+    <hr>
+    <div class="mi-row">字級 <button data-fs="-1">A−</button><span id="fs-now">${fontSize()}</span><button data-fs="1">A＋</button></div>
+    ${me && me.user ? `<hr><div class="mi-sub">👤 ${esc(me.user.username)}</div>
+      ${me.user.is_admin ? '<a class="mi" href="/admin" target="pycode-admin">⚙ 管理</a>' : ''}
+      <button class="mi" data-logout="1">登出</button>` : ''}`;
+  menu.querySelectorAll('[data-click]').forEach((b) => (b.onclick = () => { closeMore(); document.getElementById(b.dataset.click).click(); }));
+  menu.querySelectorAll('[data-fs]').forEach((b) => (b.onclick = () => { $('#fs-now').textContent = setFontSize(fontSize() + +b.dataset.fs); }));
+  const lo = menu.querySelector('[data-logout]');
+  if (lo) lo.onclick = async () => { await fetch('/api/logout', { method: 'POST' }); location.href = '/login'; };
+  menu.hidden = $('#more-mask').hidden = false;
+}
+function closeMore() { $('#more-menu').hidden = $('#more-mask').hidden = true; }
+$('#btn-more').onclick = openMore;
+$('#more-mask').onclick = closeMore;
+
+/* ---------- 自動存檔 ---------- */
+let suppressSave = false;
+function scheduleSave() {
+  if (suppressSave || !state.current) return;
+  clearGuideHighlight();  // 使用者自己動手改了，就移除「新增行」標示
+  const pid = state.current.id;
+  // 1) 每次變動立刻暫存到瀏覽器，重新整理、關閉分頁或伺服器掛掉都不會遺失
+  writeDraft(pid, { code: editor.getValue(), ts: Date.now(), synced: false });
+  setSaveState('已暫存（同步中…）');
+  // 2) 停止輸入 0.8 秒後再備份到伺服器 (solutions/*.py)
+  clearTimeout(state.saveTimer);
+  state.saveTimer = setTimeout(() => syncDraft(pid), 800);
+}
+
+const draftKey = (pid) => PC.key('draft:' + pid);
+function readDraft(pid) {
+  try { return JSON.parse(localStorage.getItem(draftKey(pid))); } catch { return null; }
+}
+function writeDraft(pid, d) {
+  try { localStorage.setItem(draftKey(pid), JSON.stringify(d)); } catch {}
+}
+function removeDraft(pid) {
+  try { localStorage.removeItem(draftKey(pid)); } catch {}
+}
+function setSaveState(text, pid = state.current?.id) {
+  if (state.current && state.current.id === pid) $('#save-state').textContent = text;
+}
+
+// 把瀏覽器暫存送到伺服器；失敗就保留「未同步」並稍後重試
+async function syncDraft(pid) {
+  const d = readDraft(pid);
+  if (!d || d.synced) return;
+  try {
+    await api(`/api/problems/${pid}/code`, 'PUT', { code: d.code });
+    const now = readDraft(pid);
+    if (now && now.ts === d.ts) writeDraft(pid, { ...now, synced: true });
+    setSaveState('已儲存', pid);
+  } catch {
+    setSaveState('⚠ 伺服器未同步（已暫存在瀏覽器，會自動重試）', pid);
+    clearTimeout(state.retryTimers[pid]);
+    state.retryTimers[pid] = setTimeout(() => syncDraft(pid), 5000);
+  }
+}
+
+// 切換題目前、離開頁面前，立刻送出尚未同步的內容
+function flushSave() {
+  clearTimeout(state.saveTimer);
+  if (state.current) syncDraft(state.current.id);
+}
+function beaconSave() {
+  const pid = state.current?.id, d = pid && readDraft(pid);
+  if (d && !d.synced) {
+    navigator.sendBeacon(`/api/problems/${pid}/code`, new Blob([JSON.stringify({ code: d.code })], { type: 'application/json' }));
+  }
+}
+window.addEventListener('pagehide', beaconSave);
+// 手機切到其他 App 時通常不會觸發 pagehide（之後系統可能直接關掉分頁）：一進背景就先送出
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') beaconSave(); });
+
+/* ---------- API ---------- */
+async function api(url, method = 'GET', body, retries = 3) {
+  let res;
+  try {
+    res = await fetch(url, {
+      method, headers: { 'Content-Type': 'application/json' },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch (e) {
+    // 伺服器暫時連不上（例如正在重啟）時稍等再試
+    if (retries <= 0) throw new Error('連不到後端伺服器，請確認 python app.py 仍在執行。');
+    await new Promise((r) => setTimeout(r, 1000));
+    return api(url, method, body, retries - 1);
+  }
+  if (!res.ok) {
+    // 伺服器有說明（例如「你有一個程式正在執行」「每分鐘最多執行 20 次」）就顯示說明
+    const data = await res.json().catch(() => null);
+    throw new Error((data && (data.message || data.error)) || `${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+
+/* ---------- 題目 ---------- */
+// 設計題中隨機的結果以 {any_of: [...]} 表示，顯示成「任一」
+const fmt = (v) => JSON.stringify(v, (k, x) => (x && typeof x === 'object' && !Array.isArray(x) && x.any_of ? `任一：${x.any_of.join(' / ')}` : x));
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const md = (s) => (window.marked ? marked.parse(s) : `<p style="white-space:pre-wrap">${esc(s)}</p>`);
+
+// 標籤分類：資料結構 = 輸入/使用的結構；解題技巧 = 可以用來解題的演算法
+const DATA_STRUCTURES = new Set(window.TAGS.dataStructures);
+const TECHNIQUES = new Set(window.TAGS.techniques);
+
+function renderTagGroups(p) {
+  const tags = p.tags || [];
+  const groups = [
+    ['難度', `<span class="chip ${p.difficulty}">${p.difficulty}</span>`],
+    ['資料結構', tags.filter((t) => DATA_STRUCTURES.has(t)), 'ds'],
+    ['解題技巧', tags.filter((t) => TECHNIQUES.has(t)), 'algo'],
+    ['其他', tags.filter((t) => !DATA_STRUCTURES.has(t) && !TECHNIQUES.has(t)), ''],
+  ];
+  return `<div class="tag-groups">${groups
+    .filter(([, v]) => typeof v === 'string' || v.length)
+    .map(([label, v, cls]) => `<span class="tg-label">${label}</span><div class="tg-chips">${
+      typeof v === 'string' ? v : v.map((t) => `<span class="chip ${cls}">${esc(t)}</span>`).join('')
+    }</div>`).join('')}</div>`;
+}
+
+const tagClass = (t) => (DATA_STRUCTURES.has(t) ? 'ds' : TECHNIQUES.has(t) ? 'algo' : '');
+
+// 解題方式清單：每個解法列出它用到的技巧，點選後可用「下一步」逐步產生程式碼
+function renderSolutions(p) {
+  const sols = p.guides || [];
+  if (!sols.length) return '';
+  const nums = ['一', '二', '三', '四', '五', '六'];
+  return `
+    <details id="solutions">
+    <summary>解題方式（還是不會再看）</summary>
+    <div class="sol-list">${sols.map((s, i) => `
+      <div class="sol-card" data-sol="${esc(s.id)}" role="button" tabindex="0">
+        <div class="sol-name"><span class="sol-no">解法${nums[i] || i + 1}</span>${esc(s.name)}<span class="sol-steps">${s.steps.length} 個階段</span></div>
+        <div class="sol-uses"><span class="tg-label">用到的技巧</span>${s.uses.map((t) => `<span class="chip ${tagClass(t)}">${esc(t)}</span>`).join('')}</div>
+      </div>`).join('')}
+    </div>
+    </details>`;
+}
+
+// 測資輸入的顯示方式：一般題「參數 = 值」；設計題顯示操作序列與參數（和 LeetCode 相同）
+function formatInput(p, t) {
+  if (t.ops) return `${fmt(t.ops)}\n${fmt(t.args)}`;
+  return t.args.map((a, i) => `${p.params?.[i] ?? 'arg' + i} = ${fmt(a)}`).join(', ');
+}
+
+async function loadList() {
+  state.problems = await api('/api/problems');
+  renderList();
+  loadBankName();
+}
+
+async function loadBankName() {
+  try {
+    const b = await api('/api/banks');
+    $('#bank-name').textContent = '題庫：' + b.banks.find((x) => x.id === b.current).name;
+  } catch {}
+}
+
+// 從題庫清單分頁切換題庫後，回到這個分頁時自動換成新的題目
+window.addEventListener('focus', async () => {
+  if (!state.current) return;
+  let latest;
+  try { latest = await api('/api/problems'); } catch { return; }
+  loadBankName();
+  const same = latest.length === state.problems.length && latest.every((p, i) => p.id === state.problems[i].id);
+  state.problems = latest;
+  renderList();
+  if (!same) {
+    flushSave();
+    if (latest[0]) openProblem(latest[0].id);
+  }
+});
+
+// 比照線上測驗：畫面上只用 Question N 稱呼題目，不顯示原題名
+const qNum = (pid) => state.problems.findIndex((p) => p.id === pid) + 1;
+const byHash = () => {
+  const m = location.hash.match(/^#q(\d+)$/);
+  return m ? state.problems[+m[1] - 1] : undefined;
+};
+
+function renderList() {
+  const solved = state.problems.filter((p) => p.solved).length;
+  $('#progress').textContent = `已解 ${solved} / ${state.problems.length}`;
+  $('#plist').innerHTML = state.problems
+    .map((p, i) => `
+      <div class="pitem ${state.current?.id === p.id ? 'current' : ''}" data-id="${p.id}">
+        <span class="check" title="${p.solved ? '已完成（' + p.solved_at + '）' : p.status === 'attempted' ? '作答中' : ''}">${p.solved ? '✓' : p.status === 'attempted' ? '✎' : ''}</span>
+        <span class="name">Question ${i + 1}</span>
+      </div>`).join('');
+}
+
+async function openProblem(pid) {
+  flushSave();
+  endDebug();
+  const p = await api(`/api/problems/${pid}`);
+  state.current = p;
+  location.hash = 'q' + qNum(pid);
+  try { localStorage.setItem(PC.key('lastProblem'), pid); } catch {}
+
+  $('#problem').innerHTML = `
+    <h1>Question ${qNum(pid)}</h1>
+    <div class="meta">
+      <button class="btn-hint" id="btn-hint">💡 提示</button>
+    </div>
+    <div class="hint-panel" id="hint-panel" hidden>
+      <div class="hint-title">原題</div>
+      <p class="orig-title">LeetCode ${p.number}. ${esc(p.title)}
+        <a class="orig-link" href="https://leetcode.com/problems/${encodeURIComponent(p.id)}/description/" target="_blank" rel="noopener">查看官方原題 ↗</a></p>
+      ${p.description_zh ? '<div class="hint-title">中文說明</div>' : ''}
+      ${md(p.description_zh || '')}
+      <details id="approach">
+        <summary>解題方向（想好再看）</summary>
+        ${renderTagGroups(p)}
+        ${p.approach_zh ? md(p.approach_zh) : ''}
+        ${renderSolutions(p)}
+        ${!p.approach_zh && !(p.guides || []).length ? `<p class="placeholder" style="font-size:13px">此題尚無中文解題內容。可參考
+          <a class="orig-link" href="https://leetcode.com/problems/${encodeURIComponent(p.id)}/editorial/" target="_blank" rel="noopener">官方 Editorial ↗</a>、
+          <a class="orig-link" href="https://leetcode.com/problems/${encodeURIComponent(p.id)}/solutions/" target="_blank" rel="noopener">Solutions ↗</a></p>` : ''}
+      </details>
+    </div>
+    <div id="statement" class="lc-content"><p class="placeholder">載入官方題目中…</p></div>
+    <p class="placeholder" style="font-size:12px">${p.total_tests} test cases (${p.total_tests - p.examples.length} hidden)${p.auto_import ? '・此題只使用官方範例測資' : ''}</p>`;
+  $('#problem').scrollTop = 0;
+  loadStatement(p);
+  const hintBtn = $('#btn-hint');
+  if (hintBtn) hintBtn.onclick = () => {
+    const panel = $('#hint-panel');
+    panel.hidden = !panel.hidden;
+    hintBtn.classList.toggle('on', !panel.hidden);
+    hintBtn.textContent = panel.hidden ? '💡 提示' : '✕ 隱藏提示';
+  };
+
+  // 瀏覽器暫存若尚未同步到伺服器，代表它比伺服器上的版本新，優先使用
+  const draft = readDraft(pid);
+  const useDraft = draft && !draft.synced && draft.code !== p.saved_code;
+  suppressSave = true;
+  editor.setValue(useDraft ? draft.code : (p.saved_code ?? p.starter));
+  suppressSave = false;
+  if (useDraft) {
+    $('#save-state').textContent = '已從瀏覽器暫存還原（同步中…）';
+    syncDraft(pid);
+  } else {
+    if (draft && !draft.synced) writeDraft(pid, { ...draft, synced: true });
+    $('#save-state').textContent = p.saved_code ? '已載入上次的程式碼' : '';
+  }
+  initGuide(p);
+  $('#result').innerHTML = '<p class="placeholder">按「執行」跑範例測資，按「提交」跑全部測資（含隱藏）。</p>';
+  renderList();
+  closeDrawer();
+  editor.focusEnd();
+}
+
+// 題目本文：顯示 LeetCode 官方內容（文字、圖片、排版、順序都和官方相同）；
+// 連不到 LeetCode 且本機也沒有快取時，才退回離線版本。
+async function loadStatement(p) {
+  const box = $('#statement');
+  let html = null;
+  try {
+    const res = await fetch(`/api/problems/${encodeURIComponent(p.id)}/official`);
+    if (res.ok) html = (await res.json()).html;
+  } catch {}
+  if (state.current?.id !== p.id || !box.isConnected) return;  // 已經切到別題
+  if (html) {
+    box.innerHTML = sanitizeOfficial(html);
+    return;
+  }
+  box.innerHTML = `<p class="offline-note">⚠ 無法連線到 LeetCode，以下為離線版本（內容相同但文字為改寫，沒有圖片）。</p>
+    ${md(p.description)}
+    ${p.examples.map((t, i) => `
+      <div class="example"><b>Example ${i + 1}:</b>
+        <pre><b style="display:inline">Input: </b>${esc(formatInput(p, t))}\n<b style="display:inline">Output: </b>${esc(t.output_text ?? fmt(t.expected))}${t.explanation ? `\n<b style="display:inline">Explanation: </b>${esc(t.explanation)}` : ''}</pre>
+      </div>`).join('')}`;
+}
+
+// 官方 HTML 只保留排版用的標籤：移除 script、事件屬性等，連結一律開新分頁
+function sanitizeOfficial(html) {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  doc.querySelectorAll('script, style, iframe, object, embed, form, link, meta').forEach((el) => el.remove());
+  doc.querySelectorAll('*').forEach((el) => {
+    for (const attr of [...el.attributes]) {
+      const name = attr.name.toLowerCase();
+      if (name.startsWith('on') || (['href', 'src'].includes(name) && /^\s*javascript:/i.test(attr.value))) {
+        el.removeAttribute(attr.name);
+      }
+    }
+    if (el.tagName === 'A') { el.target = '_blank'; el.rel = 'noopener'; }
+    if (el.tagName === 'IMG') { el.loading = 'lazy'; el.removeAttribute('width'); el.removeAttribute('height'); }
+  });
+  return doc.body.innerHTML;
+}
+
+function step(delta) {
+  const i = state.problems.findIndex((p) => p.id === state.current?.id);
+  const next = state.problems[(i + delta + state.problems.length) % state.problems.length];
+  if (next) openProblem(next.id);
+}
+
+/* ---------- 逐步引導 ----------
+ *  階段 0 = 使用者自己的程式碼；階段 1..4 = 約束條件、Pseudo code、函式骨架、完整實作。
+ * 離開步驟 0 前，使用者的程式碼會備份到瀏覽器與伺服器 (solutions/<id>.backup.py)。
+ */
+const guide = { sol: null, step: 0, original: null, decorations: [] };
+const findSol = (id) => (state.current?.guides || []).find((x) => x.id === id);
+const guideKey = (pid) => PC.key('guide:' + pid);
+
+function saveGuideState() {
+  const pid = state.current.id;
+  try {
+    if (guide.sol) localStorage.setItem(guideKey(pid), JSON.stringify({ sol: guide.sol, step: guide.step, original: guide.original }));
+    else localStorage.removeItem(guideKey(pid));
+  } catch {}
+}
+
+function initGuide(p) {
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(guideKey(p.id))); } catch {}
+  const sol = saved && findSol(saved.sol);
+  const valid = !!sol;
+  guide.sol = valid ? sol.id : null;
+  guide.step = valid ? Math.min(saved.step, sol.steps.length) : 0;
+  guide.original = (valid && saved.original != null) ? saved.original : p.backup_code;
+  clearGuideHighlight();
+  bindGuideChips();
+  renderGuideBar();
+  // 引導進行中：預先展開「解題方向」與「解題方式」，打開提示時就看得到已選的解法
+  if (guide.sol) for (const id of ['#approach', '#solutions']) if ($(id)) $(id).open = true;
+}
+
+function bindGuideChips() {
+  document.querySelectorAll('.sol-card').forEach((el) => {
+    el.classList.toggle('selected', el.dataset.sol === guide.sol);
+    el.title = el.dataset.sol === guide.sol ? '再點一次結束引導' : '選擇這個解題方式';
+    el.onclick = () => selectSolution(el.dataset.sol);
+    el.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectSolution(el.dataset.sol); } };
+  });
+}
+
+const guideSteps = () => findSol(guide.sol)?.steps || [];
+
+// 目前編輯器的內容是否被使用者改過（和這一步的標準程式碼不同）
+function stepModified() {
+  return guide.step > 0 && editor.getValue() !== guideSteps()[guide.step - 1].code;
+}
+
+async function selectSolution(id) {
+  if (id === guide.sol) {
+    // 重複點擊已選的解題方式 = 結束引導（保留編輯器目前的程式碼）
+    if (guide.step > 0 && !(await askConfirm('結束引導，並保留編輯器目前的程式碼？\n（開始引導前你原本的程式碼將不再保留）', { title: '結束引導', okText: '結束引導' }))) return;
+    endGuide(false);
+    return;
+  }
+  if (guide.step > 0) {
+    // 換解法時先回到使用者自己的程式碼，再從新解法的第 1 步開始
+    if (!(await goStep(0))) return;
+  }
+  guide.sol = id;
+  guide.step = 0;
+  saveGuideState();
+  bindGuideChips();
+  renderGuideBar();
+  if (isPhone()) setTab('code');  // 手機：引導的上一步／下一步在程式碼分頁
+}
+
+async function goStep(k) {
+  const steps = guideSteps();
+  if (!guide.sol) {
+    // 還沒選解法：打開提示並提醒
+    if (isPhone()) setTab('problem');
+    const panel = $('#hint-panel');
+    if (panel && panel.hidden) $('#btn-hint').click();
+    for (const id of ['#approach', '#solutions']) if ($(id)) $(id).open = true;
+    renderGuideBar('請先在左側「💡 提示」的「解題方式」裡點選一種解法。');
+    document.querySelector('.sol-list')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    return false;
+  }
+  k = Math.max(0, Math.min(k, steps.length));
+  if (k === guide.step) return false;
+  if (stepModified() && !(await askConfirm('你修改過這個階段的程式碼，切換階段會覆蓋這些修改。確定要繼續嗎？', { title: '切換階段', okText: '覆蓋並切換', danger: true }))) return false;
+
+  const pid = state.current.id;
+  if (guide.step === 0) {
+    // 離開步驟 0：備份使用者自己的程式碼
+    guide.original = editor.getValue();
+    api(`/api/problems/${pid}/backup`, 'PUT', { code: guide.original }).catch(() => {});
+  }
+  const code = k === 0 ? (guide.original ?? state.current.starter) : steps[k - 1].code;
+  suppressSave = true;
+  editor.setValue(code);
+  suppressSave = false;
+  scheduleSave();  // 立刻暫存 + 同步伺服器
+
+  const base = k === 0 ? null : (k === 1 ? state.current.starter : steps[k - 2].code);
+  guide.step = k;
+  saveGuideState();
+  renderGuideBar();
+  if (base != null) highlightAdded(base, code);
+  return true;
+}
+
+async function endGuide(restoreOriginal) {
+  if (restoreOriginal && guide.step > 0) {
+    if (stepModified() && !(await askConfirm('你修改過這個階段的程式碼，還原會覆蓋這些修改。確定嗎？', { title: '還原我的程式碼', okText: '覆蓋並還原', danger: true }))) return;
+    suppressSave = true;
+    editor.setValue(guide.original ?? state.current.starter);
+    suppressSave = false;
+    scheduleSave();
+  }
+  api(`/api/problems/${state.current.id}/backup`, 'DELETE').catch(() => {});
+  Object.assign(guide, { sol: null, step: 0, original: null });
+  saveGuideState();
+  clearGuideHighlight();
+  bindGuideChips();
+  renderGuideBar();
+}
+
+function renderGuideBar(warning) {
+  const bar = $('#guide-bar');
+  const steps = guideSteps();
+  $('#btn-step-prev').disabled = !guide.sol || guide.step === 0;
+  $('#btn-step-next').disabled = !!guide.sol && guide.step === steps.length;
+  bar.classList.toggle('warn', !!warning);
+  if (warning) { bar.hidden = false; bar.innerHTML = `<div class="g-head">⚠ ${esc(warning)}</div>`; return; }
+  if (!guide.sol) { bar.hidden = true; bar.innerHTML = ''; return; }
+
+  const st = guide.step > 0 ? steps[guide.step - 1] : null;
+  const actions = guide.step > 0 ? `
+    <div class="g-actions">
+      <button class="btn" id="g-restore" title="回到開始引導前你自己寫的程式碼">還原我的程式碼</button>
+      <button class="btn" id="g-keep" title="保留目前編輯器的程式碼並關閉引導">保留並結束</button>
+    </div>` : `<div class="g-actions"><button class="btn" id="g-keep">結束引導</button></div>`;
+  // 階段進度列：0 = 你的程式碼，1..4 = 約束條件 → Pseudo code → 函式骨架 → 完整實作；可直接點選跳到任一階段
+  const stageNames = ['你的程式碼', ...steps.map((x) => x.title)];
+  const stages = stageNames.map((name, i) => `
+    <button class="g-stage ${i === guide.step ? 'on' : ''} ${i < guide.step ? 'done' : ''}" data-k="${i}">
+      ${i === 0 ? '✎' : i}. ${esc(name)}
+    </button>`).join('<span class="g-arrow">→</span>');
+  bar.hidden = false;
+  bar.innerHTML = `
+    <div class="g-head">
+      <span>🧭 ${esc(findSol(guide.sol).name)}</span>
+      ${actions}
+    </div>
+    <div class="g-stages">${stages}</div>
+    ${st?.explain ? `<div class="g-explain">${md(st.explain)}</div>` : ''}`;
+  bar.querySelectorAll('.g-stage').forEach((b) => (b.onclick = () => goStep(+b.dataset.k)));
+  const restore = $('#g-restore');
+  if (restore) restore.onclick = () => endGuide(true);
+  $('#g-keep').onclick = () => endGuide(false);
+}
+
+// 以最長共同子序列找出新增的行，並在編輯器中標示
+function highlightAdded(before, after) {
+  clearGuideHighlight();
+  if (!editor.impl?.deltaDecorations) return;
+  const a = before.split('\n'), b = after.split('\n');
+  const dp = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
+  for (let i = a.length - 1; i >= 0; i--)
+    for (let j = b.length - 1; j >= 0; j--)
+      dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+  const added = [];
+  let i = 0, j = 0;
+  while (j < b.length) {
+    if (i < a.length && a[i] === b[j]) { i++; j++; }
+    else if (i < a.length && dp[i + 1][j] >= dp[i][j + 1]) i++;
+    else { if (b[j].trim()) added.push(j + 1); j++; }
+  }
+  guide.decorations = editor.impl.deltaDecorations([], added.map((line) => ({
+    range: new monaco.Range(line, 1, line, 1),
+    options: { isWholeLine: true, className: 'guide-line', linesDecorationsClassName: 'guide-gutter' },
+  })));
+  if (added.length) editor.impl.revealLineInCenterIfOutsideViewport(added[0]);
+}
+
+function clearGuideHighlight() {
+  if (guide.decorations.length && editor.impl?.deltaDecorations) {
+    guide.decorations = editor.impl.deltaDecorations(guide.decorations, []);
+  }
+}
+
+$('#btn-step-prev').onclick = () => goStep(guide.step - 1);
+$('#btn-step-next').onclick = () => goStep(guide.step + 1);
+
+/* ---------- 執行 / 提交 ---------- */
+async function run(submit) {
+  if (!state.current) return;
+  endDebug();
+  const btns = [$('#btn-run'), $('#btn-submit'), $('#m-run'), $('#m-submit')];
+  btns.forEach((b) => (b.disabled = true));
+  showResultTab(null);  // 手機：切到結果分頁看執行進度
+  $('#result').innerHTML = `<p class="placeholder">${submit ? '提交中' : '執行中'}…</p>`;
+  try {
+    const pid = state.current.id, code = editor.getValue();
+    const r = await api(`/api/problems/${pid}/run`, 'POST', { code, submit });
+    // 執行時伺服器也會存檔，順便把暫存標記為已同步
+    const d = readDraft(pid);
+    if (d && d.code === code) writeDraft(pid, { ...d, synced: true });
+    $('#save-state').textContent = '已儲存';
+    renderResult(r, submit);
+    if (isPhone()) $('#m-badge').style.background = r.status === 'Accepted' ? 'var(--ok)' : 'var(--bad)';
+    if (submit && r.status === 'Accepted') {
+      const item = state.problems.find((p) => p.id === state.current.id);
+      if (item) item.solved = true;
+      renderList();
+    }
+  } catch (e) {
+    $('#result').innerHTML = `<div class="status bad">連線錯誤</div><div class="field"><pre class="err">${esc(e.message)}</pre></div>`;
+  } finally {
+    btns.forEach((b) => (b.disabled = false));
+  }
+}
+
+function renderResult(r, submit) {
+  const ok = r.status === 'Accepted';
+  let html = `<div class="status ${ok ? 'ok' : 'bad'}">${esc(r.status)}</div>`;
+
+  if (r.compile_error || r.message) {
+    html += `<div class="field"><pre class="err">${esc(r.compile_error || r.message)}</pre></div>`;
+    if (r.stdout) html += field('標準輸出 (stdout)', r.stdout);
+    $('#result').innerHTML = html;
+    return;
+  }
+
+  const tests = r.tests || [];
+  const passed = tests.filter((t) => t.passed).length;
+  html += `<div class="sub">${submit ? '' : '範例'}測資 ${passed} / ${r.total} 通過</div>`;
+  const cur = state.current || {};
+  if (!ok && cur.multi_answer) {
+    html += `<div class="sub" style="color:var(--warn,#d9a400)">⚠ 本題答案不唯一（或含隨機結果），自動判題只能與官方範例的答案比對；若你的答案同樣符合題意，可能仍是正確的。</div>`;
+  }
+  html += `<div class="cases">${tests.map((t, i) => `
+    <button class="case-tab ${i === 0 ? 'active' : ''}" data-i="${i}">
+      <span class="dot" style="background:${t.passed ? 'var(--ok)' : 'var(--bad)'}"></span>${t.hidden ? '🔒 ' : ''}Test case ${i}
+    </button>`).join('')}</div><div id="case-body"></div>`;
+  $('#result').innerHTML = html;
+
+  // 非隱藏測資在「範例」裡的編號（逐步除錯只能用範例）
+  let ex = 0;
+  const exIdx = tests.map((t) => (t.hidden ? null : ex++));
+  const show = (i) => {
+    document.querySelectorAll('.case-tab').forEach((b) => b.classList.toggle('active', +b.dataset.i === i));
+    $('#case-body').innerHTML = caseBody(tests[i], exIdx[i]);
+    const db = $('#case-body .btn-case-debug');
+    if (db) db.onclick = () => startDebug(+db.dataset.ex);
+  };
+  document.querySelectorAll('.case-tab').forEach((b) => (b.onclick = () => show(+b.dataset.i)));
+  if (tests.length) show(Math.max(0, tests.findIndex((t) => !t.passed)));
+}
+
+function field(label, text, cls = '') {
+  return `<div class="field"><label>${label}</label><pre class="${cls}">${esc(text)}</pre></div>`;
+}
+
+function caseBody(t, exIdx = null) {
+  if (!t) return '';
+  if (t.hidden && !('args' in t)) {
+    return `<div class="field"><pre class="${t.passed ? '' : 'diff'}">${t.passed ? '✓ Passed' : '✗ ' + esc(t.verdict)}</pre></div>
+      <div class="sub">🔒 隱藏測資：跟正式測驗一樣，不會顯示輸入與預期輸出。</div>`;
+  }
+  let h = field('輸入', formatInput(state.current, t));
+  if (t.error) h += field('錯誤訊息', t.error, 'err');
+  else h += field('你的輸出', fmt(t.actual), t.passed ? '' : 'diff');
+  h += field('預期輸出', fmt(t.expected));
+  if (t.mismatch_index != null && t.ops) {
+    h += `<div class="sub">第一個不同的地方：第 ${t.mismatch_index} 步 ${esc(t.ops[t.mismatch_index])}(${esc(fmt(t.args[t.mismatch_index]).slice(1, -1))})</div>`;
+  }
+  if (t.stdout) h += field('標準輸出 (stdout)', t.stdout);
+  if (t.time_ms != null) h += `<div class="sub">執行時間：${t.time_ms} ms</div>`;
+  if (exIdx != null) h += `<button class="btn btn-case-debug" data-ex="${exIdx}" style="margin-top:8px">🐞 逐步執行這個範例</button>`;
+  return h;
+}
+
+/* ---------- 逐步除錯（錄製執行過程後逐步回放） ---------- */
+// state.dbg = { r: 執行結果, t: 測資結果, steps, i: 目前第幾步, ex: 範例編號, code: 錄製時的程式碼 }
+let dbgDecos = [];
+
+async function startDebug(ex = 0) {
+  if (!state.current) return;
+  const pid = state.current.id, code = editor.getValue();
+  const examples = state.current.examples || [];
+  if (!examples.length) return;
+  ex = Math.min(Math.max(0, ex), examples.length - 1);
+  $('#result').innerHTML = '<p class="placeholder">錄製執行過程中…</p>';
+  $('#btn-debug').disabled = true;
+  try {
+    const r = await api(`/api/problems/${pid}/trace`, 'POST', { code, index: ex });
+    const d = readDraft(pid);
+    if (d && d.code === code) writeDraft(pid, { ...d, synced: true });
+    if (r.compile_error || r.message) {  // 編譯錯誤、逾時：用一般的結果畫面顯示
+      endDebug();
+      renderResult(r, false);
+      return;
+    }
+    const t = r.tests[0];
+    state.dbg = { r, t, steps: t.trace || [], i: 0, ex, code };
+    showResultTab(null);
+    if (editor.impl) editor.impl.updateOptions({ glyphMargin: true });
+    renderDebug();
+  } catch (e) {
+    $('#result').innerHTML = `<div class="status bad">連線錯誤</div><div class="field"><pre class="err">${esc(e.message)}</pre></div>`;
+  } finally {
+    $('#btn-debug').disabled = false;
+  }
+}
+
+function endDebug(message) {
+  if (!state.dbg) return;
+  state.dbg = null;
+  if (editor.impl) {
+    dbgDecos = editor.impl.deltaDecorations(dbgDecos, []);
+    editor.impl.updateOptions({ glyphMargin: false });
+  }
+  if (message) $('#result').innerHTML = `<p class="placeholder">${esc(message)}</p>`;
+}
+
+// 跳到第 i 步；mode：over = 跳過函式（到同一層或更外層的下一步）、out = 跳出目前函式
+function dbgGo(i, mode) {
+  const d = state.dbg;
+  if (!d || !d.steps.length) return;
+  const cur = d.steps[d.i];
+  if (mode === 'over' || mode === 'out') {
+    const limit = mode === 'over' ? cur.depth : cur.depth - 1;
+    let j = d.i + 1;
+    // 目前是「回傳」時，跳過函式就是單純下一步
+    if (!(mode === 'over' && cur.event === 'return')) {
+      while (j < d.steps.length && d.steps[j].depth > limit) j++;
+    }
+    i = j;
+  }
+  d.i = Math.max(0, Math.min(d.steps.length - 1, i));
+  renderDebug();
+}
+
+// 同一個函式呼叫（同一層）的上一步，用來標示「這一步有變化的變數」
+function dbgPrevSameFrame(d) {
+  const cur = d.steps[d.i];
+  for (let j = d.i - 1; j >= 0; j--) {
+    const s = d.steps[j];
+    if (s.depth < cur.depth) return null;  // 進入這次呼叫之前
+    if (s.depth === cur.depth && s.func === cur.func) return s;
+  }
+  return null;
+}
+
+function renderDebug() {
+  const d = state.dbg;
+  if (!d) return;
+  const examples = state.current.examples || [];
+  const n = d.steps.length;
+  const s = d.steps[d.i];
+  const exOpts = examples.map((_, k) => `<option value="${k}" ${k === d.ex ? 'selected' : ''}>範例 ${k + 1}</option>`).join('');
+  let h = `<div class="dbg-bar">
+      <span class="title">🐞 逐步除錯</span>
+      <select id="dbg-ex" title="換一個範例重新錄製">${exOpts}</select>
+      <button class="btn" data-dbg="first" title="回到第一步（Home）">⏮</button>
+      <button class="btn" data-dbg="prev" title="上一步（← 或 Shift+F10）">◀ 上一步</button>
+      <button class="btn" data-dbg="next" title="下一步，會進入函式（→ 或 F11）">下一步 ▶</button>
+      <button class="btn" data-dbg="over" title="跳過函式：不進入呼叫的函式內部（F10）">⤼ 跳過函式</button>
+      <button class="btn" data-dbg="out" title="跳出目前函式（Shift+F11）">⤴ 跳出函式</button>
+      <button class="btn" data-dbg="last" title="跳到最後一步（End）">⏭</button>
+      <button class="btn" data-dbg="close" title="結束除錯（Esc）">✕ 結束</button>
+    </div>`;
+  if (!n) {
+    h += `<p class="placeholder">沒有錄到任何步驟（程式可能沒有執行到你的函式）。</p>`;
+    $('#result').innerHTML = h + dbgResultHtml(d);
+    bindDebugBar();
+    return;
+  }
+  h += `<input type="range" class="dbg-slider" id="dbg-slider" min="0" max="${n - 1}" value="${d.i}">`;
+  const label = s.event === 'call' ? `<span class="ev call">呼叫</span>進入 <b>${esc(s.func)}</b>（第 ${s.line} 行）`
+    : s.event === 'return' ? `<span class="ev return">回傳</span><b>${esc(s.func)}</b> 回傳 <code>${esc(s.value ?? 'None')}</code>`
+    : s.event === 'exception' ? `<span class="ev exception">例外</span>${esc(s.value)}（第 ${s.line} 行）`
+    : `<span class="ev">執行</span>即將執行第 <b>${s.line}</b> 行（${esc(s.func)}）`;
+  h += `<div class="dbg-info">第 ${d.i + 1} / ${n} 步　${label}${d.t.trace_truncated ? '　<span style="color:var(--muted)">（只錄製前 ' + n + ' 步）</span>' : ''}</div>`;
+
+  const prev = dbgPrevSameFrame(d);
+  const vars = Object.entries(s.vars).filter(([k, v]) => !(k === 'self' && v === 'Solution()'));
+  const rows = vars.map(([k, v]) => {
+    const changed = prev && prev.vars[k] !== v;
+    return `<tr class="${changed ? 'changed' : ''}"><td>${esc(k)}</td><td>${esc(v)}</td></tr>`;
+  }).join('') || '<tr><td colspan="2" style="color:var(--muted)">（沒有區域變數）</td></tr>';
+  const stack = s.stack.slice().reverse().map((f, k) =>
+    `<div class="${k === 0 ? 'cur' : ''}">${k === 0 ? '▶ ' : '　'}${esc(f.func)}　第 ${f.line} 行</div>`).join('');
+  h += `<div class="dbg-grid">
+      <div class="dbg-box"><h4>變數（${esc(s.func)}）· 黃色＝這一步有變化</h4><table class="dbg-vars">${rows}</table></div>
+      <div class="dbg-box"><h4>呼叫堆疊（最上面是目前的函式）</h4><div class="dbg-stack">${stack}</div></div>
+    </div>`;
+  const out = (d.t.stdout || '').slice(0, s.out);
+  if (d.t.stdout) h += field('到目前為止的輸出 (print)', out || '（還沒有輸出）');
+  if (d.i === n - 1) h += dbgResultHtml(d);
+  h += `<div class="dbg-kbd">快捷鍵：← → 上一步／下一步　F10 跳過函式　F11 進入　Shift+F11 跳出　Home／End 第一步／最後一步　Esc 結束（修改程式碼也會結束除錯）</div>`;
+  $('#result').innerHTML = h;
+  bindDebugBar();
+
+  // 編輯器標示目前這一行
+  if (editor.impl) {
+    const cls = s.event === 'return' ? 'dbg-line-ret' : s.event === 'exception' ? 'dbg-line-exc' : 'dbg-line';
+    dbgDecos = editor.impl.deltaDecorations(dbgDecos, [{
+      range: new monaco.Range(s.line, 1, s.line, 1),
+      options: { isWholeLine: true, className: cls, glyphMarginClassName: 'dbg-glyph' },
+    }]);
+    editor.impl.revealLineInCenterIfOutsideViewport(s.line);
+  }
+}
+
+function dbgResultHtml(d) {
+  const t = d.t, r = d.r;
+  let h = `<div class="field"><label>執行結果</label><pre class="${r.status === 'Accepted' ? '' : 'diff'}">${esc(r.status)}</pre></div>`;
+  h += field('輸入', formatInput(state.current, t));
+  if (t.error) h += field('錯誤訊息', t.error, 'err');
+  else h += field('你的輸出', fmt(t.actual), t.passed ? '' : 'diff');
+  h += field('預期輸出', fmt(t.expected));
+  return h;
+}
+
+function bindDebugBar() {
+  document.querySelectorAll('[data-dbg]').forEach((b) => (b.onclick = () => dbgAction(b.dataset.dbg)));
+  const sl = $('#dbg-slider');
+  if (sl) sl.oninput = () => dbgGo(+sl.value);
+  const sel = $('#dbg-ex');
+  if (sel) sel.onchange = () => startDebug(+sel.value);
+}
+
+function dbgAction(a) {
+  const d = state.dbg;
+  if (!d) return;
+  if (a === 'first') dbgGo(0);
+  else if (a === 'prev') dbgGo(d.i - 1);
+  else if (a === 'next') dbgGo(d.i + 1);
+  else if (a === 'over') dbgGo(d.i, 'over');
+  else if (a === 'out') dbgGo(d.i, 'out');
+  else if (a === 'last') dbgGo(d.steps.length - 1);
+  else if (a === 'close') endDebug('已結束除錯。按「🐞 除錯」可以重新開始。');
+}
+
+// 快捷鍵：除錯中才有作用；← → Home End 只在焦點不在編輯器時作用，避免影響打字
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'F9') { e.preventDefault(); startDebug(state.dbg ? state.dbg.ex : 0); return; }
+  if (!state.dbg) return;
+  const inEditor = e.target.closest && (e.target.closest('#editor') || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName));
+  const map = { F10: e.shiftKey ? 'prev' : 'over', F11: e.shiftKey ? 'out' : 'next' };
+  if (!inEditor) Object.assign(map, { ArrowLeft: 'prev', ArrowRight: 'next', Home: 'first', End: 'last', Escape: 'close' });
+  const a = map[e.key];
+  if (a) { e.preventDefault(); e.stopPropagation(); dbgAction(a); }
+}, true);
+
+/* ---------- 拖曳調整大小 ---------- */
+function makeResizer(gutter, onMove) {
+  gutter.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    document.body.style.userSelect = 'none';
+    const move = (ev) => onMove(ev);
+    const up = () => {
+      document.body.style.userSelect = '';
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  });
+}
+makeResizer($('#gutter-v'), (e) => {
+  const rect = $('main').getBoundingClientRect();
+  const pct = Math.min(80, Math.max(20, ((e.clientX - rect.left) / rect.width) * 100));
+  $('#left').style.width = pct + '%';
+});
+makeResizer($('#gutter-h'), (e) => {
+  const rect = $('#right').getBoundingClientRect();
+  const h = Math.min(rect.height - 120, Math.max(60, rect.bottom - e.clientY));
+  $('#result-pane').style.height = h + 'px';
+});
+
+/* ---------- 其他事件 ---------- */
+const closeDrawer = () => document.body.classList.remove('drawer-open');
+$('#btn-list').onclick = () => document.body.classList.add('drawer-open');
+$('#drawer-mask').onclick = closeDrawer;
+$('#plist').onclick = (e) => { const it = e.target.closest('.pitem'); if (it) openProblem(it.dataset.id); };
+$('#btn-refresh').onclick = async () => {
+  if (!(await askConfirm('刷新會隨機換成另外 ' + state.problems.length + ' 題，目前這組題目會被換掉。\n\n已經寫過的程式碼、完成紀錄都會保留，之後再抽到時會自動載入。', { title: '刷新題目', okText: '刷新' }))) return;
+  flushSave();  // 先把目前題目的程式碼存好
+  state.problems = await api('/api/set/refresh', 'POST');
+  renderList();
+  if (state.problems[0]) openProblem(state.problems[0].id);
+};
+/* ---------- 匯出 / 匯入 ---------- */
+// 引導進度存在瀏覽器（localStorage 的 guide:<題目>），匯出時一併帶上
+function collectGuides() {
+  const out = {};
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k.startsWith(PC.key('guide:'))) out[k.slice(PC.key('guide:').length)] = JSON.parse(localStorage.getItem(k));
+    }
+  } catch {}
+  return out;
+}
+
+$('#btn-export').onclick = async () => {
+  const fmt = await askChoice('要匯出成哪一種格式？\n內容包含：每題的程式碼、引導前的原始程式碼、完成紀錄（日期）、引導進度。', {
+    title: '匯出程式碼與紀錄',
+    choices: [
+      { value: 'yaml', label: 'YAML（.yaml）', hint: '程式碼好閱讀' },
+      { value: 'json', label: 'JSON（.json）', hint: '通用格式' },
+    ],
+  });
+  if (!fmt) return;
+  if (state.current) { clearTimeout(state.saveTimer); await syncDraft(state.current.id); }  // 先存好目前的程式碼
+  let r;
+  try {
+    r = await api('/api/export', 'POST', { format: fmt, guides: collectGuides() });
+  } catch (e) {
+    await askChoice('匯出失敗：' + e.message, { title: '匯出' });
+    return;
+  }
+  // 下載到電腦
+  const blob = new Blob([r.content], { type: fmt === 'yaml' ? 'text/yaml' : 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = r.filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  await askChoice(`已匯出 ${r.count} 題的程式碼與紀錄。\n\n檔案：${r.filename}\n已存到專案的 exports/ 資料夾。\n（一般瀏覽器會同時下載到「下載」資料夾；內嵌瀏覽器可能不支援下載，請到 exports/ 取檔）`, { title: '匯出完成' });
+};
+
+$('#btn-import').onclick = async () => {
+  let files = [];
+  try { files = await api('/api/exports'); } catch {}
+  const choice = await askChoice('要從哪裡匯入？', {
+    title: '匯入程式碼與紀錄',
+    choices: [
+      { value: '__pick__', label: '📂 從電腦選擇檔案…', hint: '.yaml / .json' },
+      ...files.slice(0, 8).map((f) => ({ value: f.name, label: f.name, hint: f.time })),
+    ],
+  });
+  if (!choice) return;
+  if (choice === '__pick__') {
+    $('#import-file').value = '';
+    $('#import-file').click();  // 選好檔案後由 onchange 繼續
+    return;
+  }
+  importFrom({ server_file: choice }, choice);
+};
+
+$('#import-file').onchange = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  importFrom({ content: await file.text(), filename: file.name }, file.name);
+};
+
+async function importFrom(source, label) {
+  let pv;
+  try {
+    const res = await fetch('/api/import/preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(source) });
+    pv = await res.json();
+    if (!res.ok) throw new Error(pv.error || res.statusText);
+  } catch (e) {
+    await askChoice('無法匯入：' + e.message, { title: '匯入' });
+    return;
+  }
+  const s = pv.summary;
+  if (!s.problems) {
+    await askChoice(`「${label}」裡沒有可以匯入的紀錄。`, { title: '匯入' });
+    return;
+  }
+  const lines = [
+    `檔案：${label}${pv.exported_at ? `（匯出時間 ${pv.exported_at}）` : ''}`,
+    `將匯入 ${s.problems} 題：程式碼 ${s.codes} 題、完成紀錄 ${s.solved} 題、引導進度 ${s.guides} 題。`,
+    pv.unknown.length ? `有 ${pv.unknown.length} 題不在目前題目中，會略過：${pv.unknown.slice(0, 5).join(', ')}${pv.unknown.length > 5 ? '…' : ''}` : '',
+    '',
+    '同一題若已經有程式碼，會被檔案裡的版本取代。',
+    '匯入前會自動把目前所有資料備份到 exports/ 資料夾，隨時可以再匯入還原。',
+  ].filter((x) => x !== null);
+  if (!(await askConfirm(lines.join('\n'), { title: '確認匯入', okText: '匯入' }))) return;
+
+  if (state.current) { clearTimeout(state.saveTimer); await syncDraft(state.current.id); }
+  let r;
+  try {
+    r = await api('/api/import/apply', 'POST', { problems: pv.problems, guides_now: collectGuides() });
+  } catch (e) {
+    await askChoice('匯入失敗：' + e.message, { title: '匯入' });
+    return;
+  }
+  // 瀏覽器端：清掉這些題目的暫存（改用匯入的版本），並還原引導進度
+  for (const [pid, rec] of Object.entries(r.problems)) {
+    try {
+      if ('code' in rec) removeDraft(pid);
+      if (rec.guide) localStorage.setItem(guideKey(pid), JSON.stringify(rec.guide));
+    } catch {}
+  }
+  await loadList();
+  if (state.current) await openProblem(state.current.id);
+  await askChoice(`已匯入 ${r.imported} 題的程式碼與紀錄。\n\n匯入前的資料已備份為：exports/${r.backup}`, { title: '匯入完成' });
+}
+
+$('#btn-prev').onclick = () => step(-1);
+$('#btn-next').onclick = () => step(1);
+$('#btn-run').onclick = () => run(false);
+$('#btn-debug').onclick = () => startDebug(0);
+$('#btn-submit').onclick = () => run(true);
+$('#btn-reset').onclick = async () => {
+  if (!state.current || !(await askConfirm('確定要還原成初始程式碼嗎？目前的程式碼會被清除。', { title: '重設程式碼', okText: '重設', danger: true }))) return;
+  clearTimeout(state.saveTimer);
+  removeDraft(state.current.id);
+  await api(`/api/problems/${state.current.id}/code`, 'DELETE');
+  if (guide.sol) endGuide(false);
+  suppressSave = true; editor.setValue(state.current.starter); suppressSave = false;
+  $('#save-state').textContent = '已重設';
+  editor.focusEnd();
+};
+window.addEventListener('hashchange', () => {
+  const p = byHash();
+  if (p && p.id !== state.current?.id) openProblem(p.id);
+});
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeDrawer();
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !editor.impl?.addCommand && !editor.impl?.view) { e.preventDefault(); run(e.shiftKey); }
+});
+
+/* ---------- 第一次使用：還沒有題庫 ---------- */
+function showNoBank() {
+  $('#problem').innerHTML = `
+    <div class="no-bank">
+      <h1>尚未載入題庫</h1>
+      <p>第一次使用，請載入題庫檔（<code>.pcbank</code>）。載入後就可以開始練習；之後要更新題庫，也是換一個題庫檔即可。</p>
+      <p><button class="btn btn-submit" id="btn-load-bank">📂 選擇題庫檔…</button></p>
+      <p class="placeholder">題庫檔可以在另一台電腦的「📚 題庫清單 → 📦 匯出題庫」產生。</p>
+    </div>`;
+  $('#btn-load-bank').onclick = () => { $('#bank-first-input').value = ''; $('#bank-first-input').click(); };
+}
+
+$('#bank-first-input').onchange = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  let ins;
+  try {
+    const res = await fetch('/api/bankfile/upload', { method: 'POST', headers: { 'X-Filename': encodeURIComponent(file.name) }, body: file });
+    ins = await res.json();
+    if (!res.ok) throw new Error(ins.error || res.statusText);
+  } catch (err) {
+    await askChoice('無法使用這個題庫檔：' + err.message, { title: '載入題庫' });
+    return;
+  }
+  const n = ins.new;
+  const counts = Object.entries(n.banks).filter(([b]) => b !== 'all').map(([b, c]) => `${n.bank_names[b] || b} ${c} 題`).join('、');
+  if (!(await askConfirm(`${n.name || n.file}${n.built_at ? `（建立於 ${n.built_at}）` : ''}\n共 ${n.problems} 題：${counts}`, { title: '載入這個題庫？', okText: '載入' }))) return;
+  const res = await fetch('/api/bankfile/replace', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ server_file: ins.staged }) });
+  if (!res.ok) {
+    await askChoice('載入題庫失敗：' + ((await res.json()).error || res.statusText), { title: '載入題庫' });
+    return;
+  }
+  location.reload();  // 重新載入頁面：標籤、題目清單都換成新題庫的
+};
+
+/* ---------- 啟動 ---------- */
+(async () => {
+  await PC.ready;  // 先確認登入狀態（多人模式），暫存的 key 才知道是哪個使用者的
+  const ready = useTouchEditor() ? initCM() : await initMonaco();
+  if (!ready) initTextarea();
+  await loadList();
+  if (!state.problems.length) { showNoBank(); return; }
+  let last = null;
+  try { last = localStorage.getItem(PC.key('lastProblem')); } catch {}
+  const start = byHash() || state.problems.find((p) => p.id === last) || state.problems[0];
+  if (start) openProblem(start.id);
+})();
+</script>
+</body>
+</html>
